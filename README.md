@@ -25,13 +25,15 @@ The programme map (the two axes, the three steps, where every repo sits) is the 
 |---|---|---|
 | 0 | One tile computes: LUT tables, wiring as indices, soft and hard read, truth-table tasks, direct descent as the floor | descent reaches the target on the hard read; soft ≡ hard at deploy |
 | 1 | Signals: what a local update may read and how error travels (uniform adjoint, relay through the table, straight-through) | the relay keeps the true gradient's sign where the uniform adjoint loses it |
-| 2 | The training workshop: pool-based meta-learning, truncated BPTT, the online deploy loop | a pool-trained update adapts a fresh tile where a frozen one does not |
-| 3 | The rule: one small function of (logit, relayed error) applied at every logit | with the relayed error the rule discovers a held-out task; blind, it does not |
+| 2 | The training workshop: pool-based meta-learning with **descent on the step-1 signal as the inner update** (MAML-style), truncated BPTT through the pool, the outer optimiser, the online deploy loop with its window | a meta-learned initialisation adapts a fresh tile to a held-out task in a few inner steps where a random one does not |
+| 3 | The rule: one small function of (logit, relayed error) applied at every logit, **replacing descent as the inner update in the same workshop** | with the relayed error the rule discovers held-out tasks and the blind rule does not; its margin over descent on the same signal is measured, either sign a finding |
 | 4 | Damage and heal; the basin over degenerate solutions | function recovered in a different configuration |
 | 5 | Evaluation discipline: paired frozen suite, memorisation gap, the deploy window | every check runs paired, at the deploy window; the tile is owned |
 | 6 | Wiring as configuration: per-port selection, a lost core routed around | frozen mis-wiring fails; route-around recovers what in-tile repair cannot |
 | 7 | The second substrate: the Mosaic core through the same two functions | it passes every check the LUT fabric passes |
 | 8 | The maze: arbitrary I/O; a second task superposed | the dataflow grows between arbitrary points; the second task reuses the first |
+
+*The steps are a plan, not a contract: they change when a check teaches us, and the change is recorded in the PR that makes it.*
 
 ## Not here, by decision
 

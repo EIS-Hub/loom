@@ -25,8 +25,9 @@ def init(key: jax.Array, widths: tuple[int, ...], arity: int = 4, scale: float =
     """Random tables over a random fixed wiring.
 
     ``widths`` = (n_in, hidden..., n_out) is the number of lines leaving each layer. Each gate draws
-    ``arity`` inputs from the previous layer; a permutation makes every previous line feed at least
-    one gate whenever the fan-in allows it.
+    ``arity`` inputs from the previous layer. Any index array is a valid wiring, so fan-out is
+    unconstrained; this init spreads it as evenly as the fan-in allows (a permutation taken mod the
+    previous width: every line feeds either ⌊edges/n_prev⌋ or ⌈edges/n_prev⌉ gate inputs).
     """
     logits, wires = [], []
     for n_prev, gates in zip(widths[:-1], widths[1:], strict=True):
