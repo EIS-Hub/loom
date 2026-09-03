@@ -19,7 +19,7 @@ def test_training_the_deployed_circuit_directly_reaches_the_target():
     for seed in range(3):
         k_task, k_tile = jax.random.split(jax.random.fold_in(jax.random.key(1), seed))
         y = tasks.k_junta(k_task, 4, 2, k=2)
-        t = descent.fit(tile.init(k_tile, WIDTHS), x, y, lr=0.02, mode="ste")
+        t = descent.fit(tile.init(k_tile, WIDTHS), x, y, steps=2000, lr=0.02, mode="ste")
         assert tile.accuracy(t, x, y, "hard") == 1.0  # no gap to close: it trained on bits
 
 
