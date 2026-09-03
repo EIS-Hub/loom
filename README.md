@@ -51,3 +51,7 @@ pyright --pythonpath "$(which python)"   # so it sees the env's jax
 Work lands as **chunks**: one question, at most ~150 hand-written lines plus a test, one page in the PR
 body (`.github/pull_request_template.md`), read in full. The order is `QUEUE.md`. Code re-lifted from the
 frozen reference implementation (`blastema`) carries a one-line provenance comment.
+
+Every module has its didactic page under `docs/`, written in the same chunk as the code it explains: the
+PR page is the changelog, the doc is the explanation. Numbers live in the checks; a doc may carry a
+worked example, never a result.
