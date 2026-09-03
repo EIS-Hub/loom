@@ -25,15 +25,15 @@ The programme map (the two axes, the three steps, where every repo sits) is the 
 |---|---|---|
 | 0 | One tile computes: LUT tables, wiring as indices, soft and hard read, truth-table tasks, direct descent as the floor | descent reaches the target on the hard read; soft ≡ hard at deploy |
 | 1 | Signals: what a local update may read and how error travels (uniform adjoint, relay through the table); the read mode as an axis, soft or straight-through on the hard tables | the relay keeps the true gradient's sign where the uniform adjoint loses it; whether training the deployed circuit directly closes the soft/hard gap by construction |
-| 2 | The training workshop: pool-based meta-learning with the **smallest rule as the inner update**, Δ = −η·signal, η and the initial tables learned by the outer loop; truncated BPTT through the pool; the online window | the workshop re-learns descent under the right signal: a meta-learned η and initialisation adapt a fresh tile to a held-out task in a few inner steps where a random start does not |
+| 2 | The training workshop: pool-based meta-learning with the **smallest rule as the inner update**, Δ = −η·signal, where only η is learned by the outer loop through truncated BPTT; the pool holds tile states of every age (a fraction re-seeded each outer step), the tables are never meta-learned; a minimal train/held-out task split; the online window | from a non-functional η the outer loop recovers a working one under a sign-consistent signal and cannot under a sign-flipped one; the tuned rule adapts a fresh tile to a held-out task |
 | 3 | The rule: one small function of (logit, relayed error) applied at every logit, **replacing −η·signal as the inner update in the same workshop** | with the relayed error the rule discovers held-out tasks and the blind rule does not; its margin over descent on the same signal is measured, either sign a finding |
 | 4 | Damage and heal; the basin over degenerate solutions | function recovered in a different configuration |
-| 5 | Evaluation discipline: paired frozen suite, memorisation gap, the deploy window | every check runs paired, at the deploy window; the tile is owned |
+| 5 | Evaluation discipline, re-lifted from blastema's design: {train, held-out} wiring × {train, held-out} task, the input-case split as a third axis, the memorisation gap, paired seeds, the deploy window as a visible axis | every check runs paired, at the deploy window; the tile is owned |
 | 6 | Wiring as configuration: per-port selection, a lost core routed around | frozen mis-wiring fails; route-around recovers what in-tile repair cannot |
 | 7 | The second substrate: the Mosaic core through the same two functions | it passes every check the LUT fabric passes |
 | 8 | The maze: arbitrary I/O; a second task superposed | the dataflow grows between arbitrary points; the second task reuses the first |
 
-*The steps are a plan, not a contract: they change when a check teaches us, and the change is recorded in the PR that makes it.*
+*The steps are a plan, not a contract: they change when a check teaches us, and the change is recorded in the PR that makes it. Steps 6 to 8 are placeholders, each to be split into several chunks when reached; `QUEUE.md` only ever holds the next three.*
 
 ## Not here, by decision
 
