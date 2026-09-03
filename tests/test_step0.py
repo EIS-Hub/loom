@@ -34,3 +34,10 @@ def test_descent_reaches_two_bit_addition_with_carry():
     x, y = tasks.add(4)
     t = descent.fit(tile.init(jax.random.key(2), (4, 16, 8, 3)), x, y)
     assert tile.accuracy(t, x, y, hard=True) == 1.0
+
+
+def test_descent_reaches_the_target_online_one_case_at_a_time():
+    k_task, k_tile = jax.random.split(jax.random.key(3))
+    x, y = tasks.inputs(4), tasks.k_junta(k_task, 4, 2, k=2)
+    t = descent.fit(tile.init(k_tile, WIDTHS), x, y, steps=3000, lr=0.05, window=1)
+    assert tile.accuracy(t, x, y, hard=True) == 1.0
