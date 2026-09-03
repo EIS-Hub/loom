@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "loom"
+version = "0.0.1"
+description = "The core of self-constructing machines: one local rule that compiles, heals and learns, on any substrate that is data plus one function."
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [{ name = "Gabriel Béna" }]
+dependencies = ["jax>=0.4.30", "optax>=0.2.0", "numpy>=1.26"]
+
+[project.optional-dependencies]
+# ruff is exact-pinned: it is the style SSOT, so CI, pre-commit and the editor name the same version.
+dev = ["pytest>=8.0", "pytest-xdist>=3.0", "ruff==0.15.13", "pyright>=1.1.390"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B"]
+# math notation is fine: W, P, k, x_T ...
+ignore = ["N803", "N806", "E741"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: a step check that takes minutes; run on demand or nightly"]
+addopts = "-q"
