@@ -43,6 +43,7 @@ later, tag-pinned). Ladders, registries, result tables. Mesh, engram, context, u
 ```bash
 pip install -e ".[dev]" && pre-commit install
 pytest                # the fast checks; -m slow for the long ones
+pyright --pythonpath "$(which python)"   # so it sees the env's jax
 ```
 
 Work lands as **chunks**: one question, at most ~150 hand-written lines plus a test, one page in the PR
