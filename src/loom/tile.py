@@ -54,25 +54,28 @@ def read(tables: jax.Array, inputs: jax.Array) -> jax.Array:
     return out[..., 0]
 
 
-def activations(tile: Tile, x: jax.Array, hard: bool = False) -> list[jax.Array]:
+def activations(tile: Tile, x: jax.Array, mode: str = "soft") -> list[jax.Array]:
     """Every layer's output, input first. ``x`` [B, n_in] in [0, 1].
 
-    ``hard`` rounds the tables to bits: the deployed circuit, whose gates emit bits for bit inputs.
+    The read ``mode``: ``soft`` reads the tables as probabilities (gradients flow); ``hard`` rounds
+    them to bits (the deployed circuit, whose gates emit bits for bit inputs); ``ste`` is the hard
+    value with the soft gradient (straight-through: train the deployed circuit directly).
     """
     acts = [x]
     for lgt, w in zip(tile.logits, tile.wires, strict=True):
-        tables = jax.nn.sigmoid(lgt)
-        if hard:
-            tables = jnp.round(tables)
+        soft = jax.nn.sigmoid(lgt)
+        hard = jnp.round(soft)
+        ste = hard + (soft - jax.lax.stop_gradient(soft))  # exactly hard in value
+        tables = {"soft": soft, "hard": hard, "ste": ste}[mode]
         acts.append(read(tables, acts[-1][:, w]))  # x[:, w] gathers [B, arity, gates]
     return acts
 
 
-def forward(tile: Tile, x: jax.Array, hard: bool = False) -> jax.Array:
+def forward(tile: Tile, x: jax.Array, mode: str = "soft") -> jax.Array:
     """The output lines, [B, n_out]."""
-    return activations(tile, x, hard)[-1]
+    return activations(tile, x, mode)[-1]
 
 
-def accuracy(tile: Tile, x: jax.Array, y: jax.Array, hard: bool = True) -> jax.Array:
+def accuracy(tile: Tile, x: jax.Array, y: jax.Array, mode: str = "hard") -> jax.Array:
     """Fraction of output bits right over the batch; on the hard read, the deployed accuracy."""
-    return jnp.mean(jnp.round(forward(tile, x, hard)) == y)
+    return jnp.mean(jnp.round(forward(tile, x, mode)) == y)

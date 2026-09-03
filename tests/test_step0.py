@@ -15,7 +15,7 @@ def test_read_is_exact_on_bits():
     out = tile.read(xor, jnp.stack([a, b], axis=1)[:, :, None])  # [B, arity, gates=1]
     assert jnp.array_equal(out[:, 0], jnp.logical_xor(a, b).astype(jnp.float32))
     # And the hard read of any tile emits bits.
-    hard = tile.forward(tile.init(jax.random.key(0), WIDTHS), tasks.inputs(4), hard=True)
+    hard = tile.forward(tile.init(jax.random.key(0), WIDTHS), tasks.inputs(4), mode="hard")
     assert jnp.all(jnp.isin(hard, jnp.array([0.0, 1.0])))
 
 
@@ -26,18 +26,18 @@ def test_descent_reaches_a_k_junta_on_the_hard_read():
         k_task, k_tile = jax.random.split(jax.random.fold_in(key, seed))
         y = tasks.k_junta(k_task, 4, 2, k=2)
         t = descent.fit(tile.init(k_tile, WIDTHS), x, y)
-        assert tile.accuracy(t, x, y, hard=True) == 1.0
-        assert tile.accuracy(t, x, y, hard=False) == 1.0  # soft ≡ hard at deploy
+        assert tile.accuracy(t, x, y, mode="hard") == 1.0
+        assert tile.accuracy(t, x, y, mode="soft") == 1.0  # soft ≡ hard at deploy
 
 
 def test_descent_reaches_two_bit_addition_with_carry():
     x, y = tasks.add(4)
     t = descent.fit(tile.init(jax.random.key(2), (4, 16, 8, 3)), x, y)
-    assert tile.accuracy(t, x, y, hard=True) == 1.0
+    assert tile.accuracy(t, x, y, mode="hard") == 1.0
 
 
 def test_descent_reaches_the_target_online_one_case_at_a_time():
     k_task, k_tile = jax.random.split(jax.random.key(3))
     x, y = tasks.inputs(4), tasks.k_junta(k_task, 4, 2, k=2)
     t = descent.fit(tile.init(k_tile, WIDTHS), x, y, steps=3000, lr=0.05, window=1)
-    assert tile.accuracy(t, x, y, hard=True) == 1.0
+    assert tile.accuracy(t, x, y, mode="hard") == 1.0

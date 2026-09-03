@@ -1,22 +1,21 @@
-"""Direct descent on the tables: the floor every local rule is measured against.
+"""Descent on the tables, driven by a signal: the floor every local rule is measured against.
 
-Not a rule a chip could host (it reads the whole circuit's gradient), but the answer to the first
-question of any substrate: could it train at all, and could it do so online, one case at a time.
+Not a rule a chip could host when the signal is the whole circuit's gradient; but the same loop
+driven by a signal a chip can produce is already the smallest rule, and step 2 meta-learns it.
 """
 
 from __future__ import annotations
+
+from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
 import optax
 
-from loom.tile import Tile, forward
+from loom.signals import gradient
+from loom.tile import Tile
 
-
-def bce(tile: Tile, x: jax.Array, y: jax.Array) -> jax.Array:
-    """Binary cross-entropy of the soft read against the demanded bits, per output bit, averaged."""
-    p = jnp.clip(forward(tile, x), 1e-6, 1 - 1e-6)
-    return -jnp.mean(y * jnp.log(p) + (1 - y) * jnp.log(1 - p))
+Signal = Callable[[Tile, jax.Array, jax.Array, str], tuple[jax.Array, ...]]
 
 
 def fit(
@@ -27,12 +26,16 @@ def fit(
     lr: float = 0.1,
     window: int | None = None,
     key: jax.Array | None = None,
+    signal: Signal = gradient,
+    mode: str = "soft",
 ) -> Tile:
-    """Adam on the table logits; the wiring stays fixed. Returns the fitted tile.
+    """Adam on the table logits, fed a ``signal`` in place of the gradient; the wiring stays fixed.
 
-    ``window`` is how many cases a step sees: all of them by default (the batched floor), or a
-    random window from the stream of cases, as a deployed tile would see them (``window=1`` is
-    fully online: predict on one case, adapt, next case).
+    ``signal(tile, x, y, mode)`` returns per-logit arrays; the default is the true gradient through
+    the read ``mode`` (``soft``, or ``ste`` to train the deployed circuit directly). ``window`` is
+    how many cases a step sees: all by default (the batched floor), or a random window from the
+    stream of cases as a deployed tile would see them (``window=1`` is fully online). The
+    straight-through read wants a smaller step than the soft one (bits chatter at the soft rate).
     """
     opt = optax.adam(lr)
     state = opt.init(tile.logits)
@@ -40,12 +43,11 @@ def fit(
     @jax.jit
     def step(logits, state, key):
         idx = jnp.arange(len(x)) if window is None else jax.random.choice(key, len(x), (window,))
-        loss_fn = lambda lg: bce(Tile(lg, tile.wires), x[idx], y[idx])  # noqa: E731
-        loss, grads = jax.value_and_grad(loss_fn)(logits)
+        grads = signal(Tile(logits, tile.wires), x[idx], y[idx], mode)
         updates, state = opt.update(grads, state, logits)
-        return optax.apply_updates(logits, updates), state, loss
+        return optax.apply_updates(logits, updates), state
 
     logits = tile.logits
     for k in jax.random.split(jax.random.key(0) if key is None else key, steps):
-        logits, state, _ = step(logits, state, k)
+        logits, state = step(logits, state, k)
     return Tile(logits, tile.wires)
