@@ -10,14 +10,15 @@ gradient a chip could actually produce.
 | coordinate | values today | meaning |
 |---|---|---|
 | `on` | `soft`, `hard` | the pass the signal is computed on: the soft forward, or the deployed bits |
-| `via` | `autodiff` (the relay and the uniform split come next) | how the error at the outputs reaches each logit |
-| `surrogate` | kept (dropping it comes with the relay) | whether the factor σ′(logit) is included |
+| `via` | `autodiff`, `relay`, `uniform` | how the error at the outputs reaches each logit |
+| `surrogate` | kept, dropped | whether the factor σ′(logit) is included |
 
 `REFERENCE = Signal("soft", "autodiff", surrogate=True)` is the true gradient of the loss on the
 soft pass: the idealised signal every other one is scored against. `Signal("hard")` is the same
 autodiff run on the bits, the signal usually called straight-through. Naming products
 (`true_grad_soft`, `relay_hard`, …) would explode; naming coordinates keeps the table small and
-makes every combination a cell the matrix can visit.
+makes every combination a cell the matrix can visit: `signals.CELLS` lists the ten the code
+supports (autodiff cannot drop σ′; the relay computes that signal).
 
 ## The residual, and one loss for every pass
 
@@ -82,9 +83,72 @@ descent on the hard pass wants a smaller step. Numbers in
 Read the factored gradient on the hard pass again: the error relayed through the rounded tables to
 a gate's output, times the one-hot of the selected address, times $\sigma'$. That is blastema's
 decomposition, *relay × basis × surrogate*, with the relay on the deployed pass. Straight-through
-is therefore the cell (`hard`, `autodiff`, kept) of the taxonomy and not a thing of its own. The
-next chunk adds the two transports a chip could run: the exact relay, written as a local message
-(on the same pass it must reproduce autodiff's numbers gate by gate, a theorem to check
-numerically, after which `via` may reduce to {exact, uniform} with autodiff as the reference
-implementation of exact), and the value-blind uniform split; and with them dropping $\sigma'$,
-which a chip that stores bits rather than logits cannot see.
+is therefore the cell (`hard`, `autodiff`, kept) of the taxonomy and not a thing of its own.
+
+## The transports
+
+Autodiff is the reference implementation: it runs on any substrate with a soft read and asks
+nothing of the hardware. The two others are written as what a gate could compute, from two
+quantities local to its own read.
+
+**The address distribution** (`signals.address`), how much each entry is selected by the inputs:
+
+$$P(a \mid u) = \prod_j u_j^{a_j} (1-u_j)^{1-a_j}, \qquad r(u) = \sum_a P(a \mid u)\, T[a].$$
+
+Soft inputs spread it over the entries; bits make it one-hot. A test asserts that the distribution
+against the table is the read.
+
+**The sensitivity** (`signals.sensitivity`), how much the read moves with each input. The read is
+multilinear, so it is a difference of two reads at the other inputs' current values:
+
+$$\frac{\partial r}{\partial u_j} = r(u \,|\, u_j{=}1) - r(u \,|\, u_j{=}0),$$
+
+on bits: whether flipping that input flips the output, in $\{-1, 0, 1\}$.
+
+**The sweep** (`signals.sweep`). Start with $e = \partial L/\partial r$ at the outputs, the
+residual scaled as the mean loss is. At each layer, from the output back: the per-entry signal is
+the error at the gate's output against its address distribution, summed over cases, times
+$\sigma'(z)$ if the surrogate is kept,
+
+$$s[a] = \sum_b e_b\, P_b(a \mid u_b) \;(\cdot\, \sigma'(z[a])),$$
+
+and the message to input $j$ is $e_b$ times a *carry*, added onto the line it came from, so a
+line's error is the sum over the gates it feeds. Two carries make two transports:
+
+- **relay**: the carry is the gate's own sensitivity. The sweep is then the chain rule written as
+  local messages, and it reproduces autodiff to float precision on both passes, on a flat and on a
+  deep shape (`tests/test_signals.py`). Where the two exist together, `relay` is what a chip would
+  run and `autodiff` is how we check it.
+- **uniform**: the carry is one. Every gate passes its error unchanged to every input, whatever it
+  computes: the adjoint of a network that computes nothing in particular, value-blind. It agrees
+  with the relay at the output layer, where nothing has been transported, and nowhere else.
+
+**Dropping σ′.** The kept signal is the derivative with respect to the logit; the dropped one is
+the derivative with respect to the stored entry, $T[a]$ or $H[a]$, which is what the substrate
+holds (a logit is a training-time coordinate). Since $\sigma' > 0$ nothing changes sign (a test),
+and under Adam, which normalises per coordinate, nothing changes in reach on the soft pass either,
+though on one seed the last bit took four times longer without it.
+
+## What the transports do at depth
+
+Scored against the reference on a four-layer tile of arity-3 gates on 6-bit addition
+(`notes/2026-09-07-the-relay-is-autodiff-and-the-bits-learn-by-alignment.md`):
+
+- On the soft pass, the relay *is* the reference and reaches the target with or without σ′. The
+  uniform split loses the reference's sign after one hop (chance-level agreement in every hidden
+  layer) and descent on it stalls short of the target. Value-awareness, at the level of descent.
+- On the bits, both transports are at chance against the reference in every layer, and the
+  surprise is which one descent can follow: the exact relay, with σ′ (straight-through) or without
+  (blastema's deployable `delta·basis`), does not leave chance at any rate or budget tried, while the
+  blind split trains to 0.84–0.98. Not dead paths (real, but the relay reaches nearly as many
+  entries), not thrash (throttled to a few flips a step its signal is 0.99 consistent and still at
+  chance). On the bits there is no infinitesimal: the relay is exact about a linearisation that
+  does not describe a flip, and a signal seeded by the residual cannot see the cost of breaking the
+  outputs that were right. The blind split learns by **feedback alignment**: its carry is a fixed
+  +1, and the gates drift monotone to make it right (the positive fraction of their sensitivities
+  climbs from one half toward one along training, and stays at one half under the relay).
+
+So straight-through, which reached the target on the flat tile, is a signal for shallow circuits;
+at depth the bits need either the soft pass on the chip (a substrate that holds probabilities), a
+signal that credits a flip exactly (a second relayed channel, next), or a rule that learns to use
+a blind, stable feedback. That is the question step 2 inherits.

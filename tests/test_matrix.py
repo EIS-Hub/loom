@@ -6,10 +6,9 @@ import jax.numpy as jnp
 import pytest
 
 from loom import signals, tasks, tile
-from loom.signals import REFERENCE, Signal
 
 SUBSTRATES = {"lut": lambda key: tile.init(key, (4, 16, 8, 2))}
-SIGNALS = {s.label: s for s in (REFERENCE, Signal("hard"))}  # named by their coordinates
+SIGNALS = {s.label: s for s in signals.CELLS}  # every supported cell, named by its coordinates
 
 
 @pytest.mark.parametrize("substrate", SUBSTRATES)

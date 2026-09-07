@@ -32,6 +32,10 @@ class Recipe(NamedTuple):
 SOFT_FLOOR = Recipe(REFERENCE, lr=0.1, steps=500, window=None, hidden=(16, 8))
 HARD_FLOOR = Recipe(Signal("hard"), lr=0.02, steps=2000, window=None, hidden=(16, 8))
 ONLINE_FLOOR = Recipe(REFERENCE, lr=0.05, steps=3000, window=1, hidden=(16, 8))
+DEEP_FLOOR = Recipe(REFERENCE, lr=0.1, steps=4000, window=None, hidden=(32, 32, 16), arity=3)
+DEEP_HARD_FLOOR = Recipe(
+    Signal("hard"), lr=0.02, steps=2000, window=None, hidden=(32, 32, 16), arity=3
+)
 
 
 def setup(recipe: Recipe, task: Task, seed: int) -> tuple[Tile, jax.Array, jax.Array, jax.Array]:
