@@ -135,8 +135,17 @@ line's error is the sum over the gates it feeds. Two carries make two transports
   deep shape (`tests/test_signals.py`). Where the two exist together, `relay` is what a chip would
   run and `autodiff` is how we check it.
 - **uniform**: the carry is one. Every gate passes its error unchanged to every input, whatever it
-  computes: the adjoint of a network that computes nothing in particular, value-blind. It agrees
-  with the relay at the output layer, where nothing has been transported, and nowhere else.
+  computes. A carry of one is the exact Jacobian of a gate that merely adds its inputs, so this is
+  the exact adjoint of a different network: the same wiring, every gate a sum. Its Jacobian is
+  constant, hence value-blind, and that is feedback alignment in general, transporting the error
+  through the transpose of a network you do not have. It agrees with the relay at the output layer,
+  where nothing has been transported, and nowhere else.
+
+Both are the adjoint method: the forward pass gathers each gate's inputs along the wiring and the
+sweep scatters and adds along the same wiring, which is the transpose of the gather, so the sweep
+applies the transposed Jacobian of the forward pass layer by layer from the outputs, as EventProp
+does for a spiking network with time in place of depth. On the soft pass that adjoint is exact and
+describes moves the tables can make; on the bits it is exact and describes moves they cannot.
 
 One hop of it worked out, with the same XOR gate feeding a second one, in
 [`signals-worked.md`](signals-worked.md).
