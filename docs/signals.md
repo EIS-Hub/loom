@@ -40,7 +40,7 @@ In words, for one gate with $k$ inputs:
 | symbol | what it is | ranges over |
 |---|---|---|
 | $T$ | the gate's table, one entry in $[0,1]$ per input pattern; bits when hard, probabilities when soft | $2^k$ entries |
-| $a$ | one row of the table, written as $k$ bits; $a_j$ is what that row says about input $j$ | the sum: all $2^k$ rows |
+| $a$ | the table's index, an integer from $0$ to $2^k - 1$; its binary digits are the $a_j$, input $j$ being bit $j$ of the index, least significant first (the convention `read` uses) | the sum: all $2^k$ entries |
 | $u$ | what is actually at the inputs, $k$ numbers in $[0,1]$; $u_j$ is input $j$ | the product: the $k$ inputs |
 | $P(a \mid u)$ | the probability that the pattern present at the inputs is row $a$, when input $j$ is a 1 with probability $u_j$, independently | one factor per input: $u_j$ if the row has a 1 there, $1-u_j$ if a 0 (the exponents are that switch) |
 | $T[a]$ | the table's entry at row $a$ | |
