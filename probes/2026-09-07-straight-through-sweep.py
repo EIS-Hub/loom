@@ -1,5 +1,5 @@
 """Probe: descent on the bits against the soft floor, over rate × budget × seed on 2-juntas.
-Unnamed recipe variants are built here on purpose: exploring the condition space is a probe's job.
+Unnamed recipe variants are built here on purpose: exploring conditions is a probe's job."""
 
 from loom import recipes, tasks, tile
 from loom.recipes import BITS_FLOOR, SOFT_FLOOR
