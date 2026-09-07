@@ -2,7 +2,7 @@
 
 A tile is data: per-layer table logits and per-layer wiring, nothing else. Two reads of the same
 data: the soft read (tables as probabilities) is what gradients flow through; the hard read (tables
-rounded to bits) is the deployed circuit. Every step above this one is measured on the hard read.
+rounded to bits) is the deployed circuit. Every check above this one is measured on the hard read.
 
 Re-lifted 2026-09 from blastema/substrate/circuit.py (run_layer, gen_wires), itself lifted from
 boolean_nca_cc. Dropped: gate groups, gate masks, the nop and noise inits.
@@ -10,10 +10,12 @@ boolean_nca_cc. Dropped: gate groups, gate masks, the nop and noise inits.
 
 from __future__ import annotations
 
-from typing import NamedTuple
+from typing import Literal, NamedTuple
 
 import jax
 import jax.numpy as jnp
+
+Read = Literal["soft", "hard"]
 
 
 class Tile(NamedTuple):
@@ -54,28 +56,34 @@ def read(tables: jax.Array, inputs: jax.Array) -> jax.Array:
     return out[..., 0]
 
 
-def activations(tile: Tile, x: jax.Array, mode: str = "soft") -> list[jax.Array]:
-    """Every layer's output, input first. ``x`` [B, n_in] in [0, 1].
+def tables(logits: jax.Array, mode: Read) -> jax.Array:
+    """One layer's tables as read: probabilities (``soft``) or bits (``hard``)."""
+    if mode not in ("soft", "hard"):
+        raise ValueError(f"read mode must be 'soft' or 'hard', got {mode!r}")
+    soft = jax.nn.sigmoid(logits)
+    return soft if mode == "soft" else jnp.round(soft)
 
-    The read ``mode``: ``soft`` reads the tables as probabilities (gradients flow); ``hard`` rounds
-    them to bits (the deployed circuit, whose gates emit bits for bit inputs); ``ste`` is the hard
-    value with the soft gradient (straight-through: train the deployed circuit directly).
-    """
+
+def run(
+    layers: tuple[jax.Array, ...], wires: tuple[jax.Array, ...], x: jax.Array
+) -> list[jax.Array]:
+    """Every layer's output, input first, for tables given per layer however they were made."""
     acts = [x]
-    for lgt, w in zip(tile.logits, tile.wires, strict=True):
-        soft = jax.nn.sigmoid(lgt)
-        hard = jnp.round(soft)
-        ste = hard + (soft - jax.lax.stop_gradient(soft))  # exactly hard in value
-        tables = {"soft": soft, "hard": hard, "ste": ste}[mode]
-        acts.append(read(tables, acts[-1][:, w]))  # x[:, w] gathers [B, arity, gates]
+    for t, w in zip(layers, wires, strict=True):
+        acts.append(read(t, acts[-1][:, w]))  # x[:, w] gathers [B, arity, gates]
     return acts
 
 
-def forward(tile: Tile, x: jax.Array, mode: str = "soft") -> jax.Array:
+def activations(tile: Tile, x: jax.Array, mode: Read = "soft") -> list[jax.Array]:
+    """Every layer's output, input first, on the ``soft`` or the ``hard`` read. ``x`` [B, n_in]."""
+    return run(tuple(tables(lgt, mode) for lgt in tile.logits), tile.wires, x)
+
+
+def forward(tile: Tile, x: jax.Array, mode: Read = "soft") -> jax.Array:
     """The output lines, [B, n_out]."""
     return activations(tile, x, mode)[-1]
 
 
-def accuracy(tile: Tile, x: jax.Array, y: jax.Array, mode: str = "hard") -> jax.Array:
+def accuracy(tile: Tile, x: jax.Array, y: jax.Array, mode: Read = "hard") -> jax.Array:
     """Fraction of output bits right over the batch; on the hard read, the deployed accuracy."""
     return jnp.mean(jnp.round(forward(tile, x, mode)) == y)

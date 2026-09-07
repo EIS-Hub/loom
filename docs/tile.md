@@ -16,8 +16,19 @@ Two tuples of arrays, one entry per layer.
   (fan-out is unconstrained), and `init` only chooses to spread fan-out as evenly as the fan-in
   allows.
 
-`widths = (n_in, hidden…, n_out)` gives the number of lines leaving each layer; the smallest tile
-with a hidden layer, `(4, 16, 8, 2)` at arity 4, has twenty-six gates.
+`widths = (n_in, hidden…, n_out)` gives the number of lines leaving each layer. The checks use
+`(4, 16, 8, 2)` at arity 4, twenty-six gates: the shape inherited from blastema's first rung, not a
+derived minimum. With fan-out free, `(4, 8, 2)` works too, and a single layer of two arity-4 gates
+already represents every function of four inputs, which leaves nothing to discover. Depth becomes
+necessary when a gate cannot see all the inputs (arity below the input width); that is also where
+carry chains live and, later, routing. The signal checks therefore run on a shape where depth is
+forced, and this one stays the smoke shape.
+
+The wiring's only constraints: indices in `[0, n_prev)`, shape `[arity, gates]`; a gate may read the
+same line twice. Wiring becomes configuration at step 6: each index turns into a categorical over
+the previous layer's lines, soft as a mixture (an assignment matmul), hard as an argmax, with the
+straight-through trick on the choice, the same construction as the Mosaic router. `read` needs no
+change, since it already takes the gathered inputs.
 
 ## The read
 
@@ -31,24 +42,28 @@ after `arity` halvings one number remains. On bits this is exact. On probabiliti
 table's expected value under the product distribution of its inputs, and it is differentiable.
 That one function, `read`, is the whole substrate; `activations` applies it layer by layer.
 
-## Three ways to read the same tile
+## Two ways to read the same tile
 
-| mode | tables | what it is for |
+| read | tables | what it is for |
 |---|---|---|
 | `soft` | `sigmoid(logit)` | gradients flow through everything; the training view |
 | `hard` | `round(sigmoid(logit))` | the deployed circuit: bits in, bits out, no gradient |
-| `ste` | the hard value carrying the soft gradient | train the deployed circuit directly |
 
-`ste` is *straight-through*: `hard + (soft − stop_gradient(soft))`, which is exactly `hard` in
-value and differentiates like `soft`. Only the derivative of the rounding step is replaced;
-everything downstream of it (the residual at the outputs, the paths back through other gates) is
-evaluated on the bits that actually flowed, so its gradient is sparser and coarser than the soft
-one and agrees with it only once the soft tables have saturated. That is why straight-through
-descent wants a smaller step: bits chatter at the soft rate.
+Every check in loom is measured on the `hard` read. The difference between a tile's accuracy on
+its training view and on the hard read is its *deploy gap*.
 
-Every check in loom is measured on the `hard` read. A tile trained soft is done when its hard
-read agrees with its soft one on every case; a tile trained straight-through has no gap to close,
-because it trained on bits.
+There is a third set of tables, but it belongs to the signals, not to the tile: the *straight-through*
+tables, `round(soft) + (soft − stop_gradient(soft))`, are exactly the bits in value and
+differentiate like the probabilities. They are how a gradient is made to run on the deployed pass.
+Only the rounding's derivative is replaced; everything downstream (the residual at the outputs, the
+paths back through other gates) is evaluated on the bits that flowed, so that gradient is sparser
+and coarser than the soft one and agrees with it only once the soft tables have saturated. That is
+why descent on the bits wants a smaller step (bits chatter at the soft rate), and why it has no
+deploy gap at any step: its training view is the deployed circuit.
+
+The sigmoid's slope is an implicit temperature that today lives in the scale of the logits
+(`init(scale=…)`); an explicit temperature on the soft read is a two-line change, held until a step
+needs it (annealing would).
 
 ## What a tile is not, yet
 

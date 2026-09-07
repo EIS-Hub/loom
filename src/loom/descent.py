@@ -6,36 +6,33 @@ driven by a signal a chip can produce is already the smallest rule, and step 2 m
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Iterator
+from itertools import islice
 
 import jax
 import jax.numpy as jnp
 import optax
 
-from loom.signals import gradient
-from loom.tile import Tile
-
-Signal = Callable[[Tile, jax.Array, jax.Array, str], tuple[jax.Array, ...]]
+from loom.signals import REFERENCE, Signal, compute
+from loom.tile import Tile, accuracy
 
 
-def fit(
+def descend(
     tile: Tile,
     x: jax.Array,
     y: jax.Array,
-    steps: int = 500,
+    *,
     lr: float = 0.1,
     window: int | None = None,
     key: jax.Array | None = None,
-    signal: Signal = gradient,
-    mode: str = "soft",
-) -> Tile:
-    """Adam on the table logits, fed a ``signal`` in place of the gradient; the wiring stays fixed.
+    signal: Signal = REFERENCE,
+) -> Iterator[Tile]:
+    """Adam on the table logits, fed the signal's per-logit arrays; the wiring stays fixed.
 
-    ``signal(tile, x, y, mode)`` returns per-logit arrays; the default is the true gradient through
-    the read ``mode`` (``soft``, or ``ste`` to train the deployed circuit directly). ``window`` is
-    how many cases a step sees: all by default (the batched floor), or a random window from the
-    stream of cases as a deployed tile would see them (``window=1`` is fully online). The
-    straight-through read wants a smaller step than the soft one (bits chatter at the soft rate).
+    Yields the tile after every step, without end: the caller sets the budget. ``window`` is how
+    many cases a step sees: all by default (the batched floor), or a random window from the stream
+    of cases as a deployed tile would see them (``window=1`` is fully online). Descent on the bits
+    (``Signal("hard")``) wants a smaller step than on the soft pass: bits chatter at the soft rate.
     """
     opt = optax.adam(lr)
     state = opt.init(tile.logits)
@@ -43,11 +40,42 @@ def fit(
     @jax.jit
     def step(logits, state, key):
         idx = jnp.arange(len(x)) if window is None else jax.random.choice(key, len(x), (window,))
-        grads = signal(Tile(logits, tile.wires), x[idx], y[idx], mode)
+        grads = compute(signal, Tile(logits, tile.wires), x[idx], y[idx])
         updates, state = opt.update(grads, state, logits)
         return optax.apply_updates(logits, updates), state
 
+    rng = jax.random.key(0) if key is None else key
     logits = tile.logits
-    for k in jax.random.split(jax.random.key(0) if key is None else key, steps):
+    while True:
+        rng, k = jax.random.split(rng)
         logits, state = step(logits, state, k)
-    return Tile(logits, tile.wires)
+        yield Tile(logits, tile.wires)
+
+
+def fit(tile: Tile, x: jax.Array, y: jax.Array, steps: int = 500, **kw) -> Tile:
+    """Run ``steps`` steps of :func:`descend` and return the tile."""
+    return next(islice(descend(tile, x, y, **kw), steps - 1, None))
+
+
+def trajectory(
+    tile: Tile,
+    x: jax.Array,
+    y: jax.Array,
+    steps: int = 500,
+    every: int = 50,
+    signal: Signal = REFERENCE,
+    **kw,
+) -> tuple[Tile, dict[str, jax.Array]]:
+    """Fit while recording, every ``every`` steps, accuracy on the signal's pass and on the bits.
+
+    Their difference is the deploy gap: identically zero when the signal is computed on the bits
+    (the training view is the deployed circuit), closing only at saturation on the soft pass.
+    """
+    rec: dict[str, list] = {"step": [], "train": [], "hard": []}
+    t = tile
+    for i, t in enumerate(islice(descend(tile, x, y, signal=signal, **kw), steps), start=1):
+        if i % every == 0 or i == steps:
+            rec["step"].append(i)
+            rec["train"].append(accuracy(t, x, y, signal.on))
+            rec["hard"].append(accuracy(t, x, y, "hard"))
+    return t, {k: jnp.asarray(v) for k, v in rec.items()}

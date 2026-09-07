@@ -13,8 +13,11 @@ The programme map (the two axes, the three steps, where every repo sits) is the 
 - **A substrate is data plus one function.** A config pytree and one pure forward, with a soft read
   for gradients and a hard read for deploy. Anything that passes the same two functions is a
   substrate; the differentiable Mosaic core (EIS-Hub) is the second one, wrapped in its own repo.
-- **A signal, a rule and a regime are pure functions** on local arrays. Composition is plain
-  arguments. Locality is structural: what is not an argument cannot be read.
+- **A signal is coordinates, not a name**: on which pass it is computed (the soft forward, or the
+  deployed bits), via which transport the residual reaches the logits (autodiff, the relay through each
+  gate's own table, the blind uniform split), surrogate factor kept or not. Signals, rules and regimes
+  are pure functions on local arrays; composition is plain arguments; locality is structural: what is
+  not an argument cannot be read.
 - **One combinatorial test** runs every substrate × optimiser × signal combination the code claims
   to support. **One check per step**, asserted in CI. Numbers live in the checks, nowhere else.
 - **No ladder, no rungs.** The step number is the landmark and never moves.
@@ -24,7 +27,7 @@ The programme map (the two axes, the three steps, where every repo sits) is the 
 | step | the piece | the check |
 |---|---|---|
 | 0 | One tile computes: LUT tables, wiring as indices, soft and hard read, truth-table tasks, direct descent as the floor | descent reaches the target on the hard read; soft ≡ hard at deploy |
-| 1 | Signals: what a local update may read and how error travels (uniform adjoint, relay through the table); the read mode as an axis, soft or straight-through on the hard tables | the relay keeps the true gradient's sign where the uniform adjoint loses it; whether training the deployed circuit directly closes the soft/hard gap by construction |
+| 1 | Signals: what a local update may read and how error travels; a signal as coordinates (pass × transport × surrogate); descent on the bits; the deploy gap through training | the relay keeps the reference gradient's sign where the uniform split loses it; descent on the bits reaches the target with no deploy gap at any step |
 | 2 | The training workshop: pool-based meta-learning with the **smallest rule as the inner update**, Δ = −η·signal, where only η is learned by the outer loop through truncated BPTT; the pool holds tile states of every age (a fraction re-seeded each outer step), the tables are never meta-learned; a minimal train/held-out task split; the online window | from a non-functional η the outer loop recovers a working one under a sign-consistent signal and cannot under a sign-flipped one; the tuned rule adapts a fresh tile to a held-out task |
 | 3 | The rule: one small function of (logit, relayed error) applied at every logit, **replacing −η·signal as the inner update in the same workshop** | with the relayed error the rule discovers held-out tasks and the blind rule does not; its margin over descent on the same signal is measured, either sign a finding |
 | 4 | Damage and heal; the basin over degenerate solutions | function recovered in a different configuration |
