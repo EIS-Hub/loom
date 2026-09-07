@@ -157,9 +157,12 @@ Scored against the reference on a four-layer tile of arity-3 gates on 6-bit addi
   (blastema's deployable `delta·basis`), does not leave chance at any rate or budget tried, while the
   blind split trains to 0.84–0.98. Not dead paths (real, but the relay reaches nearly as many
   entries), not thrash (throttled to a few flips a step its signal is 0.99 consistent and still at
-  chance). On the bits there is no infinitesimal: the relay is exact about a linearisation that
-  does not describe a flip, and a signal seeded by the residual cannot see the cost of breaking the
-  outputs that were right. The blind split learns by **feedback alignment**: its carry is a fixed
+  chance). On the bits a right output is silent, so the relay can only ever say "flip" to a gate on
+  a live path and never "stay": every vote an entry receives is unanimous, fixes are never weighed
+  against breaks, and the only state the relay is content with is zero error. The blind split's
+  message is a direction for the gate's output rather than a flip, so an entry already facing that
+  way stays, the entry moves on the majority of its cases, and only the gates whose bit disagrees
+  with the broadcast move. It learns by **feedback alignment**: its carry is a fixed
   +1, and the gates drift monotone to make it right (the positive fraction of their sensitivities
   climbs from one half toward one along training, and stays at one half under the relay).
 

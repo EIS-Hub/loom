@@ -110,10 +110,25 @@ split trains to 0.84–0.98 and never to 1.000 in any of its runs.
    0.93 (input → output) by step 2000, with accuracy 0.90; under the relay it stays at 0.43–0.56.
    The circuit makes the blind feedback right.
 
+6. *What the votes say.* `probes/2026-09-07-vote-coherence.py`: for each entry, how much the
+   cases that address it agree, |Σ e| / Σ |e| over those cases. On the bits the relay's votes are
+   unanimous in every layer (1.00) and the blind split's are split (0.53–0.76 in the hidden
+   layers, 1.00 at the output layer). Unanimous because on the bits the relay can only say one
+   thing: a wrong output on a live path credits a flip, a right output is silent, so every vote
+   an entry receives says "flip" and none says "stay". The blind split's message is a direction
+   for the gate's output, "lower" or "higher", the same whatever the gate's bit is; an entry
+   already facing that way saturates and stays, and the entry moves on the majority of its cases.
+
 **Why.** On the soft pass the chain rule is the right signal, the relay computes it as local
 messages, and the blind split loses the sign after one hop and stalls. On the bits there is no
-infinitesimal: the exact relay is exact about a linearisation that does not describe a flip, its
-hidden-layer direction is consistently wrong, and straight-through, which reached the target on
+infinitesimal, and a right output is silent. The relay turns that into a *relative* instruction at
+every gate on a live path, "flip", and never "stay": every entry addressed by a wrong reachable
+case flips, every flip breaks other cases, which then vote to flip back, and the only configuration
+the relay is content with is zero error, which it cannot reach because fixes are never weighed
+against breaks. The blind split turns the same residuals into an *absolute* instruction, "your
+output should be lower on this case": an entry already facing that way stays, only the gates whose
+bit disagrees with the broadcast move, and the gates downstream learn to make the assumed positive
+path true. That is why straight-through, which reached the target on
 the flat tile (previous note), fails at four layers because there the hidden layers have to
 learn. The blind split learns for the reason fixed random feedback trains a network (feedback
 alignment): it is stable, and the forward circuit adapts to it, the gates drifting monotone in
