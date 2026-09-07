@@ -1,5 +1,5 @@
 """Gates: tests stay mechanics (no training condition under tests/); every module has its doc;
-every probe pins the CPU before it imports jax (a shared machine: nothing takes a GPU on its own)."""
+every probe pins the CPU before importing jax (a shared machine: nothing takes a GPU on its own)."""
 
 import pathlib
 import re
