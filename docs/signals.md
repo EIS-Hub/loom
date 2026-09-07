@@ -42,15 +42,15 @@ In words, for one gate with $k$ inputs:
 | $T$ | the gate's table, one entry in $[0,1]$ per input pattern; bits when hard, probabilities when soft | $2^k$ entries |
 | $a$ | the table's index, an integer from $0$ to $2^k - 1$; its binary digits are the $a_j$, input $j$ being bit $j$ of the index, least significant first (the convention `read` uses) | the sum: all $2^k$ entries |
 | $u$ | what is actually at the inputs, $k$ numbers in $[0,1]$; $u_j$ is input $j$ | the product: the $k$ inputs |
-| $P(a \mid u)$ | the probability that the pattern present at the inputs is row $a$, when input $j$ is a 1 with probability $u_j$, independently | one factor per input: $u_j$ if the row has a 1 there, $1-u_j$ if a 0 (the exponents are that switch) |
-| $T[a]$ | the table's entry at row $a$ | |
-| $r(u)$ | the gate's output: every row's entry weighted by how likely that row is to be the one addressed | |
+| $P(a \mid u)$ | the probability that the pattern present at the inputs is the one index $a$ spells, when input $j$ is a 1 with probability $u_j$, independently | one factor per input: $u_j$ if bit $j$ of $a$ is 1, $1-u_j$ if it is 0 (the exponents are that switch) |
+| $T[a]$ | the table's entry at index $a$ | |
+| $r(u)$ | the gate's output: every entry weighted by how likely its index is to be the one addressed | |
 
-- On bits, exactly one row has $P = 1$ and the read is the plain lookup $T[a]$.
-- On soft inputs, $P$ is a distribution over rows, summing to 1, and the read is the table's
+- On bits, exactly one index has $P = 1$ and the read is the plain lookup $T[a]$.
+- On soft inputs, $P$ is a distribution over the $2^k$ indices, summing to 1, and the read is the table's
   expectation under it. One formula covers both passes.
 
-Example, $k = 2$, the XOR table $T = (0, 1, 1, 0)$ over rows $(00, 01, 10, 11)$, inputs
+Example, $k = 2$, the XOR table $T = (0, 1, 1, 0)$ over indices $a = (00, 01, 10, 11)$, inputs
 $u = (0.9, 0.2)$:
 
 ```
@@ -61,8 +61,8 @@ P(11 | u) = 0.9 · 0.2 = 0.18        (sum 1)
 r(u) = 0.08·0 + 0.02·1 + 0.72·1 + 0.18·0 = 0.74
 ```
 
-With bits $u = (1, 0)$ only row $10$ survives and $r = T[10] = 1$. In code, `signals.address`
-builds $P$ row by row with input $i$ as address bit $i$, the convention the halving `read` uses.
+With bits $u = (1, 0)$ only index $10$ survives and $r = T[10] = 1$. In code, `signals.address`
+builds $P$ one input at a time, input $i$ being address bit $i$, the convention the halving `read` uses.
 
 On bits $P(\cdot \mid u)$ is thus the one-hot of the selected address. With the squared loss $L$,
 the gradient at one table entry is a product of three factors:
