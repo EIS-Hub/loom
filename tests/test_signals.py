@@ -1,5 +1,6 @@
 """Mechanics of signals: straight-through is the bits in value, residuals are bits, the address
-distribution is the read, the relay is autodiff, the surrogate changes no sign, shapes hold."""
+distribution is the read, the relay is autodiff, the partial to the entry changes no sign, feedback
+alignment on the wiring's path counts is the uniform split, labels are names only, shapes hold."""
 
 import jax
 import jax.numpy as jnp
@@ -37,9 +38,10 @@ def test_the_address_distribution_against_the_table_is_the_read():
     t, _, _ = setup(2, "deep")
     inputs = jax.random.uniform(jax.random.key(3), (5, *t.wires[0].shape))  # [B, arity, gates]
     luts = tile.tables(t.logits[0], "soft")
-    p = signals.address(inputs)
+    p = signals.address(inputs)  # [B, gates, 2**arity], a distribution over entries per case
     assert jnp.allclose(p.sum(-1), 1.0)
-    assert jnp.allclose(jnp.einsum("bga,ga->bg", p, luts), tile.read(luts, inputs), atol=1e-6)
+    expectation = jnp.sum(p * luts[None], axis=-1)  # Σ_a P(a | u) T[a], per case and gate
+    assert jnp.allclose(expectation, tile.read(luts, inputs), atol=1e-6)
 
 
 @pytest.mark.parametrize("shape", SHAPES)
@@ -53,23 +55,49 @@ def test_the_relay_reproduces_autodiff_on_both_passes(shape, on):
 
 
 @pytest.mark.parametrize("on", ["soft", "hard"])
-def test_dropping_the_surrogate_changes_no_sign(on):
+def test_the_partial_to_the_entry_changes_no_sign(on):
     t, x, y = setup(5, "deep")
-    kept = signals.compute(Signal(on, "relay", surrogate=True), t, x, y)
-    dropped = signals.compute(Signal(on, "relay", surrogate=False), t, x, y)
-    for a, b in zip(kept, dropped, strict=True):
+    to_logit = signals.compute(Signal(on, "relay", "logit"), t, x, y)
+    to_entry = signals.compute(Signal(on, "relay", "entry"), t, x, y)
+    for a, b in zip(to_logit, to_entry, strict=True):
         assert jnp.array_equal(jnp.sign(a), jnp.sign(b))
 
 
-def test_the_uniform_transport_is_the_relay_at_the_output_layer_only():
+@pytest.mark.parametrize("via", ["uniform", "direct"])
+def test_the_blind_transports_are_the_relay_at_the_output_layer_only(via):
     t, x, y = setup(6, "deep")
     by_relay = signals.compute(Signal("soft", "relay"), t, x, y)
-    blind = signals.compute(Signal("soft", "uniform"), t, x, y)
-    assert jnp.allclose(by_relay[-1], blind[-1])  # no transport yet at the output layer
+    blind = signals.compute(Signal("soft", via), t, x, y)
+    assert jnp.allclose(by_relay[-1], blind[-1])  # an output gate reads its own residual
     assert not jnp.allclose(by_relay[0], blind[0])
 
 
-def test_autodiff_cannot_drop_the_surrogate():
-    t, x, y = setup(7)
+def test_direct_feedback_through_the_path_counts_is_the_uniform_split():
+    t, x, y = setup(7, "deep")
+    acts = tile.activations(t, x, "soft")
+    n_out = y.shape[1]
+    # the number of wiring paths from every gate to every output: the layered adjoint of the
+    # all-sums network, seeded with one output at a time
+    per_output = [a[:n_out] for a in acts]  # one "case" per output; the carry ignores the values
+    counts = [c.T for c in signals.layered(t, per_output, "soft", jnp.eye(n_out), signals.ones)]
+    via_bus = signals.readout(
+        signals.direct(t, signals.seed(acts, y), counts), t, acts, "soft", "entry"
+    )
+    via_layers = signals.compute(Signal("soft", "uniform", "entry"), t, x, y)
+    for a, b in zip(via_bus, via_layers, strict=True):
+        assert jnp.allclose(a, b, atol=1e-6)
+
+
+def test_labels_are_ascii_names_and_no_code_reads_them():
+    import pathlib
+
+    assert REFERENCE.label == "soft.autodiff.logit" and REFERENCE.label.isascii()
+    src = (pathlib.Path(signals.__file__).parent).glob("*.py")
+    uses = [line for f in src for line in f.read_text().splitlines() if ".label" in line]
+    assert not uses, f"a label is a name, never a branch: {uses}"
+
+
+def test_autodiff_cannot_take_the_partial_to_the_entry():
+    t, x, y = setup(8)
     with pytest.raises(NotImplementedError):
-        signals.compute(Signal(surrogate=False), t, x, y)
+        signals.compute(Signal(to="entry"), t, x, y)

@@ -37,7 +37,7 @@ def run(sig, opt, t):
 
 print(f"shape {WIDTHS} arity {ARITY}, addition, {STEPS} steps")
 print("per seed: hard accuracy / logits with nonzero signal / table bits flipping per step")
-for sig in (Signal("hard", "relay", False), Signal("hard", "uniform", False)):
+for sig in (Signal("hard", "relay", "entry"), Signal("hard", "uniform", "entry")):
     t0 = tile.init(jax.random.key(0), WIDTHS, ARITY)
     s0 = jnp.concatenate([a.ravel() for a in signals.compute(sig, t0, x, y)])
     unit = 0.05 / float(jnp.mean(jnp.abs(s0[s0 != 0])))  # SGD rate for a mean nonzero step of 0.05

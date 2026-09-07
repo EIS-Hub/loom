@@ -38,7 +38,7 @@ def flip_credit(sig, t):
 
 print(f"shape {WIDTHS} arity {ARITY}, addition, hard pass, {SEEDS} seeds: layers input → output")
 print("sign of the predicted loss change vs the actual one, over flips where both are nonzero")
-for sig in (Signal("hard", "relay", False), Signal("hard", "uniform", False)):
+for sig in (Signal("hard", "relay", "entry"), Signal("hard", "uniform", "entry")):
     rows = [
         flip_credit(sig, tile.init(jax.random.key(seed), WIDTHS, ARITY)) for seed in range(SEEDS)
     ]
@@ -52,6 +52,6 @@ for on in ("soft", "hard"):
     rows = []
     for seed in range(SEEDS):
         t = tile.init(jax.random.key(seed), WIDTHS, ARITY)
-        g = signals.compute(Signal(on, "relay", False), t, x, y)
+        g = signals.compute(Signal(on, "relay", "entry"), t, x, y)
         rows.append([float(jnp.mean(jnp.all(gi == 0, axis=1))) for gi in g])
     print(f"{on:6s}" + "".join(f"{sum(r[i] for r in rows) / SEEDS:8.2f}" for i in layers))

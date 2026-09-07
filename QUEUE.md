@@ -8,10 +8,9 @@ holds the next three; the progression below it is the plan they are drawn from.
 |---|---|---|---|---|---|---|
 | 1 | 0 | One tile computes: LUT tables as a pytree, wiring as indices, soft and hard read, truth-table tasks, direct descent as the floor | science | 25 min | none | landed (#2) |
 | 2 | 1 | Signals I: the read mode as an axis of the combinatorial test (soft, straight-through on the hard tables); what a local update may read (nothing, task identity, error) | science | 20 min | 1 | landed (#3) |
-| 3 | 1 | Signals II: the relay and the uniform transports as `via` coordinates, dropping the surrogate; the ladder scored against the reference on a shape where depth is forced; the transports' maths in `docs/signals.md`; the second note | science | 40 min | 2 | open (#4) |
-| 4 | 1 | Signals III: **direct feedback**, the residual on a bus through a fixed per-gate feedback (random ±1, ones, path counts; the last must reproduce the uniform split exactly, a mechanics test) as `via` cells; the **flip-exact credit** as the control (a second relayed channel, the reach of a flip, so the bits signal is exact about one flip; expected to fail, which nails "stable beats exact" from both sides); the alignment probe generalised to any feedback; the **physical-cost table** in `docs/signals.md` (state per gate, local reads, wiring) | science | 40 min | 3 | queued |
-| 5 | 2 | Workshop I: the pool of tile states of every age; the smallest rule Δ = −η · e · P · σ′ (the three factors multiplied) with only η meta-learned from a non-functional start; the train/held-out task split; run with the signals a chip would have (the soft relay without σ′; on the bits, whatever chunk 4 finds trains) | science | 30 min | 4 | queued |
-| 6 | 3 | The rule: a small shared g over the three factors, replacing the product in the same workshop; value-awareness at the rule level as an ablation: g reads the signal alone, then its own inputs and output too | science | 40 min | 5 | queued |
+| 3 | 1 | Signals II and III, one story under the adjoint frame: the relay and the uniform split as two carries of the layered adjoint; the partial to the entry; direct feedback as a second adjoint; the flip credit outside the frame; the ladder scored on a shape where depth is forced; the physical-cost table; the maths in order in `docs/signals.md`; two notes | science | 70 min (oversize, Gabriel's call) | 2 | open (#4) |
+| 4 | 2 | Workshop I: the pool of tile states of every age; the smallest rule Δ = −η · e · P · σ′ (the three factors multiplied) with only η meta-learned from a non-functional start; the train/held-out task split; run with the signals a chip would have (the soft relay without σ′; on the bits, whatever chunk 4 finds trains) | science | 30 min | 3 | queued |
+| 5 | 3 | The rule: a small shared g over the three factors, replacing the product in the same workshop; value-awareness at the rule level as an ablation: g reads the signal alone, then its own inputs and output too | science | 40 min | 5 | queued |
 
 ## The progression the queue is drawn from (2026-09-07)
 
@@ -19,9 +18,9 @@ The three factors of the gradient, the error `e` brought by a transport, the add
 `P(a | u)` and the slope `σ′`, are the learning signal, the eligibility and the post-synaptic factor
 of the three-factor rules of the local-learning literature. The rule grows along that reading:
 
-1. **The smallest rule** (chunk 5): the three factors multiplied, η learned. The literature's
+1. **The smallest rule** (chunk 4): the three factors multiplied, η learned. The literature's
    hand-designed three-factor rule, as the inner update of the workshop.
-2. **The rule as a function** (chunk 6): a shared `g` over the three factors, free to weight, gate
+2. **The rule as a function** (chunk 5): a shared `g` over the three factors, free to weight, gate
    or ignore them.
 3. **A hidden state per gate** (step 3, continued): `g` gains a carry. With `window = 1` and an
    error that arrives after the addressing, the carry has to become an eligibility trace to work;
@@ -50,7 +49,9 @@ axis from step 1; softjax enters at step 6 with selection. `fit` already takes a
 online regime is a stream of case windows, W = all is the batched floor, W = 1 fully online. Tasks
 gain an output mask, not zero padding, when several share a fabric.
 
-Found in chunk 3 (2026-09-07): on the bits at depth, the exact relay (straight-through with or
-without σ′) does not train and the blind uniform split does, by feedback alignment
-(`notes/2026-09-07-the-relay-is-autodiff-and-the-bits-learn-by-alignment.md`). Decided the same day:
-Signals III goes before Workshop I, so the workshop is trained on the signal a chip would have.
+Found in chunk 3 (2026-09-07): on the bits at depth, the exact relay (straight-through, to the
+logit or to the entry) does not train; the wiring-shaped blind split does, by feedback alignment;
+the flip credit does, to a fixed point of single flips; random direct feedback trains worst
+(`notes/2026-09-07-the-relay-is-autodiff-and-the-bits-learn-by-alignment.md`,
+`notes/2026-09-07-direct-feedback-and-the-flip-credit.md`). Decided the same day: Signals III folds
+into chunk 3 under the adjoint frame, so the workshop is trained on the signals a chip would have.

@@ -12,10 +12,10 @@ x, y = tasks.add(6)
 for widths in [(6, 32, 32, 16, 4), (6, 32, 16, 4)]:
     print(f"shape {widths} arity 4, addition: hard acc at 500 / 2000, seeds 0-2")
     for sig, lr in (
-        (Signal("soft", "relay", False), 0.1),
-        (Signal("soft", "uniform", False), 0.1),
-        (Signal("hard", "relay", False), 0.02),
-        (Signal("hard", "uniform", False), 0.02),
+        (Signal("soft", "relay", "entry"), 0.1),
+        (Signal("soft", "uniform", "entry"), 0.1),
+        (Signal("hard", "relay", "entry"), 0.02),
+        (Signal("hard", "uniform", "entry"), 0.02),
     ):
         cols = []
         for seed in range(3):

@@ -38,7 +38,7 @@ def run(sig, p_hidden, t, key):
 
 print(f"shape {WIDTHS} arity {ARITY}, addition, Adam 0.02, {STEPS} steps: hard accuracy per seed")
 print(f"{'signal':16s} {'hidden p':>9s}   seeds 0, 1, 2")
-for sig in (Signal("hard", "relay", False), Signal("hard", "uniform", False)):
+for sig in (Signal("hard", "relay", "entry"), Signal("hard", "uniform", "entry")):
     for p in (0.0, 0.02, 0.1, 1.0):
         accs = [
             run(sig, p, tile.init(jax.random.key(s), WIDTHS, ARITY), jax.random.key(s))

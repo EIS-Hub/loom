@@ -43,7 +43,7 @@ def train(sig, t, steps):
 
 print(f"shape {WIDTHS} arity {ARITY}, addition: positive fraction of nonzero hard sensitivities")
 print(f"{'signal':16s} {'step':>5s}   layers input → output       hard acc")
-for sig in (Signal("hard", "uniform", False), Signal("hard", "relay", False)):
+for sig in (Signal("hard", "uniform", "entry"), Signal("hard", "relay", "entry")):
     for steps in (0, 200, 1000, 2000):
         fr, acc = [], []
         for seed in range(SEEDS):

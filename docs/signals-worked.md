@@ -69,10 +69,10 @@ the most: a case pulls the entries it addressed, in proportion to how much it ad
 Entry $11$ is pulled the wrong way for XOR; the case $(1, 1)$ pulls it back, and a table is the
 compromise between the cases that address it. On bits, $u = (1, 0)$ and $H = (0, 1, 1, 0)$ give
 $r = 1 = y$, $e = 0$ and no gradient at all: a right case teaches nothing on the bits. Had $H[10]$
-been $0$, $e = -1$ and only entry $10$ moves, by $-\sigma'(z[10])$ with the surrogate and by $-1$
-without.
+been $0$, $e = -1$ and only entry $10$ moves, by $-\sigma'(z[10])$ to the logit and by $-1$ to
+the entry.
 
-## The transport, one hop
+## The layered adjoint, one hop
 
 $$e_g = \sum_{h \text{ fed by } g} e_h \cdot \frac{\partial r_h}{\partial u_{h,j}}, \qquad
 \frac{\partial r_h}{\partial u_{h,j}} = r_h(u_{h,j}{=}1) - r_h(u_{h,j}{=}0).$$
@@ -132,7 +132,25 @@ the wiring's fan-out costs in hardware.
 **On bits.** $u_g = (1, 0)$ and $H_g = (0, 1, 1, 0)$ give $r_g = 1$; with $v = 0$, $h$ addresses
 index $01$ of $H_h = (0, 1, 1, 0)$ and reads $1$; $y = 0$, so $e_h = 1$. Sensitivity by two reads:
 $H_h[01] - H_h[00] = 1 - 0 = 1$; the message is $1$; $g$'s addressed entry $10$ gets
-$1 \cdot 1 \cdot \sigma'$, or $1$ with the surrogate dropped: lower it, and this case is fixed. Had
+$1 \cdot 1 \cdot \sigma'$ to the logit, or $1$ to the entry: lower it, and this case is fixed. Had
 $H_h$ been $(0, 0, 1, 1)$, a gate that copies $v$ and ignores $g$, the two reads would both give
 $0$: sensitivity $0$, message $0$, a dead edge, and $g$ hears nothing about this case however wrong
 $h$ is. The blind split would still send $1$.
+
+## The direct adjoint and the flip credit, on the same two gates
+
+**Direct feedback** skips $h$'s sensitivity altogether: $g$ receives the residual through a fixed
+coefficient drawn once, $\lambda_g = B[g, h] \cdot e_h$ with $B[g, h] = \pm 1$. With the positive
+table above and $B[g, h] = +1$ the message is $+0.5968$, the uniform split's; with $B[g, h] = -1$
+it is $-0.5968$, the wrong way for that table and the right way for the flipped one. Which it is,
+the coin decided; what the circuit can do is make the coin right, by $h$ drifting toward a table
+whose sensitivity to $g$ has the sign of $B$.
+
+**The flip credit**, on the bits example: $u_g = (1, 0)$, $H_g = (0, 1, 1, 0)$, $r_g = 1$, $v = 0$,
+$H_h = (0, 1, 1, 0)$, $r_h = 1$, $y = 0$, $e_h = 1$. The relay's $\lambda_g = 1 \cdot 1 = 1$: flipping
+$g$'s entry $10$ (to $0$) flips $r_h$ to $0$ and fixes the case, credit $e_h \Delta_h = 1 \cdot (-1) = -1$,
+plus the cost of reaching one output, $\tfrac{1}{2}|\Delta_h| = \tfrac{1}{2}$: $\Delta L = -\tfrac{1}{2}$,
+the flip helps. Now the same with $y = 1$: $e_h = 0$, the relay is silent, and the flip credit says
+$0 + \tfrac{1}{2} = +\tfrac{1}{2}$: the flip would break a right case, stay. That half is the vote the
+relay never casts.
+

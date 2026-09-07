@@ -33,10 +33,10 @@ def coherence(sig, t):
 print(f"shape {WIDTHS} arity {ARITY}, addition, at initialisation, {SEEDS} seeds")
 print("vote coherence per entry, layers input → output (1 = the cases agree, 0 = they cancel)")
 for sig in (
-    Signal("soft", "relay", False),
-    Signal("soft", "uniform", False),
-    Signal("hard", "relay", False),
-    Signal("hard", "uniform", False),
+    Signal("soft", "relay", "entry"),
+    Signal("soft", "uniform", "entry"),
+    Signal("hard", "relay", "entry"),
+    Signal("hard", "uniform", "entry"),
 ):
     rows = [coherence(sig, tile.init(jax.random.key(s), WIDTHS, ARITY)) for s in range(SEEDS)]
     print(f"{sig.label:16s}" + "".join(f"{sum(r[i] for r in rows) / SEEDS:8.2f}" for i in layers))

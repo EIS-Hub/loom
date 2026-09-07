@@ -11,9 +11,15 @@ from loom.signals import Signal
 WIDTHS, ARITY = (6, 32, 32, 16, 4), 3
 x, y = tasks.add(6)
 CELLS = [
-    Signal(on, via, keep)
+    Signal(on, via, to)
     for on in ("soft", "hard")
-    for via, keep in (("relay", True), ("relay", False), ("uniform", False))
+    for via, to in (
+        ("relay", "logit"),
+        ("relay", "entry"),
+        ("uniform", "entry"),
+        ("direct", "entry"),
+        ("flip", "entry"),
+    )
 ]
 print(f"shape {WIDTHS} arity {ARITY}, addition: hard accuracy at step 500 / 2000, seeds 0-2")
 print(f"{'signal':18s}{'lr':>6s}   {'seed 0':>13s}  {'seed 1':>13s}  {'seed 2':>13s}")

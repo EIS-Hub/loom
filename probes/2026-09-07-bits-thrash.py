@@ -48,7 +48,7 @@ print(f"shape {WIDTHS} arity {ARITY}, addition, Adam 0.02, {STEPS} steps")
 print(
     "per seed: hard accuracy / sign consistency of the signal step to step / bits flipping per step"
 )
-for sig in (Signal("hard", "relay", False), Signal("hard", "uniform", False)):
+for sig in (Signal("hard", "relay", "entry"), Signal("hard", "uniform", "entry")):
     for p in (1.0, 0.1, 0.02):
         cells = [
             run(sig, p, tile.init(jax.random.key(s), WIDTHS, ARITY), jax.random.key(s))

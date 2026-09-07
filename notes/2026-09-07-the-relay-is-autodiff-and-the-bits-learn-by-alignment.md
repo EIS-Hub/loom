@@ -40,16 +40,16 @@ are nonzero):
 
 | signal | layer 0 | layer 1 | layer 2 | output layer |
 |---|---|---|---|---|
-| soft·autodiff·σ′ (reference) | 0.76 / +1.00 / 1.00 | 0.85 / +1.00 / 1.00 | 0.75 / +1.00 / 1.00 | 1.00 / +1.00 / 1.00 |
-| soft·relay·σ′ | 0.76 / +1.00 / 1.00 | 0.85 / +1.00 / 1.00 | 0.75 / +1.00 / 1.00 | 1.00 / +1.00 / 1.00 |
-| soft·relay·1 | 0.76 / +0.98 / 1.00 | 0.85 / +0.98 / 1.00 | 0.75 / +0.98 / 1.00 | 1.00 / +0.97 / 1.00 |
-| soft·uniform·σ′ | 0.76 / +0.14 / 0.49 | 0.85 / +0.20 / 0.57 | 0.75 / −0.06 / 0.53 | 1.00 / +1.00 / 1.00 |
-| soft·uniform·1 | 0.76 / +0.12 / 0.49 | 0.85 / +0.21 / 0.57 | 0.75 / −0.06 / 0.53 | 1.00 / +0.97 / 1.00 |
-| hard·autodiff·σ′ (straight-through) | 0.54 / +0.04 / 0.51 | 0.38 / +0.04 / 0.50 | 0.44 / −0.01 / 0.58 | 0.71 / +0.06 / 0.54 |
-| hard·relay·σ′ | 0.54 / +0.04 / 0.51 | 0.38 / +0.04 / 0.50 | 0.44 / −0.01 / 0.58 | 0.71 / +0.06 / 0.54 |
-| hard·relay·1 | 0.54 / +0.03 / 0.51 | 0.38 / +0.03 / 0.50 | 0.44 / −0.01 / 0.58 | 0.71 / +0.08 / 0.54 |
-| hard·uniform·σ′ | 0.69 / +0.02 / 0.48 | 0.59 / +0.02 / 0.51 | 0.54 / −0.04 / 0.59 | 0.71 / +0.06 / 0.54 |
-| hard·uniform·1 | 0.69 / +0.01 / 0.48 | 0.59 / +0.03 / 0.51 | 0.54 / −0.03 / 0.59 | 0.71 / +0.08 / 0.54 |
+| soft.autodiff.logit (reference) | 0.76 / +1.00 / 1.00 | 0.85 / +1.00 / 1.00 | 0.75 / +1.00 / 1.00 | 1.00 / +1.00 / 1.00 |
+| soft.relay.logit | 0.76 / +1.00 / 1.00 | 0.85 / +1.00 / 1.00 | 0.75 / +1.00 / 1.00 | 1.00 / +1.00 / 1.00 |
+| soft.relay.entry | 0.76 / +0.98 / 1.00 | 0.85 / +0.98 / 1.00 | 0.75 / +0.98 / 1.00 | 1.00 / +0.97 / 1.00 |
+| soft.uniform.logit | 0.76 / +0.14 / 0.49 | 0.85 / +0.20 / 0.57 | 0.75 / −0.06 / 0.53 | 1.00 / +1.00 / 1.00 |
+| soft.uniform.entry | 0.76 / +0.12 / 0.49 | 0.85 / +0.21 / 0.57 | 0.75 / −0.06 / 0.53 | 1.00 / +0.97 / 1.00 |
+| hard.autodiff.logit (straight-through) | 0.54 / +0.04 / 0.51 | 0.38 / +0.04 / 0.50 | 0.44 / −0.01 / 0.58 | 0.71 / +0.06 / 0.54 |
+| hard.relay.logit | 0.54 / +0.04 / 0.51 | 0.38 / +0.04 / 0.50 | 0.44 / −0.01 / 0.58 | 0.71 / +0.06 / 0.54 |
+| hard.relay.entry | 0.54 / +0.03 / 0.51 | 0.38 / +0.03 / 0.50 | 0.44 / −0.01 / 0.58 | 0.71 / +0.08 / 0.54 |
+| hard.uniform.logit | 0.69 / +0.02 / 0.48 | 0.59 / +0.02 / 0.51 | 0.54 / −0.04 / 0.59 | 0.71 / +0.06 / 0.54 |
+| hard.uniform.entry | 0.69 / +0.01 / 0.48 | 0.59 / +0.03 / 0.51 | 0.54 / −0.03 / 0.59 | 0.71 / +0.08 / 0.54 |
 
 The relay is the reference on both passes (the theorem; `tests/test_signals.py` asserts it to
 1e-7 on two shapes). Dropping σ′ keeps every sign and 0.97–0.98 of the cosine. The uniform split
@@ -65,20 +65,20 @@ inputs' values): 0.00 in every layer on the soft pass, 0.47–0.51 on the bits.
 
 | signal | rate | seed 0 | seed 1 | seed 2 |
 |---|---|---|---|---|
-| soft·relay·σ′ | 0.1 | 1.000 / 1.000 | 1.000 / 1.000 | 1.000 / 1.000 |
-| soft·relay·1 | 0.1 | 1.000 / 1.000 | 1.000 / 1.000 | 1.000 / 1.000 |
-| soft·uniform·1 | 0.1 | 0.922 / 0.934 | 0.938 / 0.941 | 0.863 / 0.859 |
-| soft·uniform·1 | 0.02 | 0.977 / 0.941 | 0.906 / 0.945 | 0.883 / 0.906 |
-| hard·relay·σ′ | 0.1 | 0.461 / 0.449 | 0.477 / 0.473 | 0.543 / 0.496 |
-| hard·relay·σ′ | 0.02 | 0.555 / 0.520 | 0.543 / 0.512 | 0.512 / 0.461 |
-| hard·relay·1 | 0.1 | 0.512 / 0.477 | 0.582 / 0.562 | 0.469 / 0.492 |
-| hard·relay·1 | 0.02 | 0.484 / 0.500 | 0.492 / 0.512 | 0.535 / 0.539 |
-| hard·uniform·1 | 0.1 | 0.898 / 0.922 | 0.879 / 0.977 | 0.816 / 0.902 |
-| hard·uniform·1 | 0.02 | 0.867 / 0.938 | 0.820 / 0.926 | 0.812 / 0.844 |
+| soft.relay.logit | 0.1 | 1.000 / 1.000 | 1.000 / 1.000 | 1.000 / 1.000 |
+| soft.relay.entry | 0.1 | 1.000 / 1.000 | 1.000 / 1.000 | 1.000 / 1.000 |
+| soft.uniform.entry | 0.1 | 0.922 / 0.934 | 0.938 / 0.941 | 0.863 / 0.859 |
+| soft.uniform.entry | 0.02 | 0.977 / 0.941 | 0.906 / 0.945 | 0.883 / 0.906 |
+| hard.relay.logit | 0.1 | 0.461 / 0.449 | 0.477 / 0.473 | 0.543 / 0.496 |
+| hard.relay.logit | 0.02 | 0.555 / 0.520 | 0.543 / 0.512 | 0.512 / 0.461 |
+| hard.relay.entry | 0.1 | 0.512 / 0.477 | 0.582 / 0.562 | 0.469 / 0.492 |
+| hard.relay.entry | 0.02 | 0.484 / 0.500 | 0.492 / 0.512 | 0.535 / 0.539 |
+| hard.uniform.entry | 0.1 | 0.898 / 0.922 | 0.879 / 0.977 | 0.816 / 0.902 |
+| hard.uniform.entry | 0.02 | 0.867 / 0.938 | 0.820 / 0.926 | 0.812 / 0.844 |
 
 On the soft pass the relay reaches the target with or without σ′ (Adam does not see a positive
-factor) and the blind split stalls short of it. On the bits the exact relay, with σ′ (which is
-straight-through) or without (blastema's deployable `delta·basis`), does not leave chance at either
+factor) and the blind split stalls short of it. On the bits the exact relay, to the logit (which is
+straight-through) or to the entry (the signal a bits fabric could compute), does not leave chance at either
 rate, nor at 0.005 for 5000 steps (run by hand: 0.51–0.56; the blind split 0.90–0.93). The blind
 split trains to 0.84–0.98 and never to 1.000 in any of its runs.
 
@@ -169,6 +169,6 @@ with these signals, separating the signal from Adam. A substrate that stores pro
 than bits runs the soft relay on the chip: the soft/hard split maps onto analogue/digital, which
 matters for the second substrate. And the bits' ceiling: what the blind split cannot build.
 
-**For the map.** blastema's finding that `delta·basis` (hard·relay·1) is the deployable optimiser
+**For the map.** blastema's finding that `delta·basis` (hard.relay.entry) is the deployable optimiser
 held on flat tiles; at four layers it does not. On the bits, the deployable signal so far is the
 blind split, and it learns by alignment, not by gradient.
