@@ -42,7 +42,7 @@ In words, for one gate with $k$ inputs:
 | $T$ | the gate's table, one entry in $[0,1]$ per input pattern; bits when hard, probabilities when soft | $2^k$ entries |
 | $a$ | the table's index, an integer from $0$ to $2^k - 1$; its binary digits are the $a_j$, input $j$ being bit $j$ of the index, least significant first (the convention `read` uses) | the sum: all $2^k$ entries |
 | $u$ | what is actually at the inputs, $k$ numbers in $[0,1]$; $u_j$ is input $j$ | the product: the $k$ inputs |
-| $P(a \mid u)$ | the probability that the pattern present at the inputs is the one index $a$ spells, when input $j$ is a 1 with probability $u_j$, independently | one factor per input: $u_j$ if bit $j$ of $a$ is 1, $1-u_j$ if it is 0 (the exponents are that switch) |
+| $P(a \mid u)$ | the probability that the inputs together spell the pattern of index $a$, reading each $u_j$ as the probability that input $j$ is a 1, independently of the others (on bits, 0 or 1) | the product: one factor per input $j$, the probability that input $j$ takes the bit $a_j$: $u_j$ if that bit is 1, $1-u_j$ if it is 0 (the exponents are that switch) |
 | $T[a]$ | the table's entry at index $a$ | |
 | $r(u)$ | the gate's output: every entry weighted by how likely its index is to be the one addressed | |
 
