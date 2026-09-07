@@ -20,6 +20,31 @@ autodiff run on the bits, the signal usually called straight-through. Naming pro
 makes every combination a cell the matrix can visit: `signals.CELLS` lists the ten the code
 supports (autodiff cannot drop σ′; the relay computes that signal).
 
+## One frame: the adjoint method
+
+Every signal here is an instance of the adjoint method, which says that the gradient at a
+parameter is the adjoint variable at the place the parameter acts, times that place's local
+partial with respect to the parameter. For a gate $g$ and one of its logits,
+
+$$\frac{\partial L}{\partial z[a]} = \lambda_g \cdot \frac{\partial r_g}{\partial z[a]}
+= \underbrace{e}_{\lambda_g} \cdot \underbrace{P(a \mid u) \cdot \sigma'(z[a])}_{\partial r_g / \partial z[a]},$$
+
+the three factors derived below. The adjoint variable $e$ is carried back from the outputs
+through a transposed Jacobian; the local partial never leaves the gate. The three coordinates are
+three choices inside that formula:
+
+| coordinate | in adjoint terms |
+|---|---|
+| `on` | where the system is linearised: at the soft state, or at the bits |
+| `via` | whose transposed Jacobian carries $\lambda$: the actual network's, computed by autodiff or locally by the relay; the all-sums network's on the same wiring (uniform); a fixed one-layer network's from the outputs to every gate (direct feedback, next) |
+| `surrogate` | which parameter the local partial is taken to: the logit (kept) or the stored entry (dropped) |
+
+The frame also says what is *outside* it: a signal carrying a second-order term, such as the exact
+credit of a bit flip, is not an adjoint, which is why it serves as a control. A learned transport
+is the adjoint of a network with learned Jacobians; e-prop is this formula with $\lambda$
+approximated by a broadcast and the local partial integrated over time into an eligibility trace;
+the rule of step 3 is a learned readout in place of the product $\lambda \cdot \partial r / \partial \theta$.
+
 ## The residual, and one loss for every pass
 
 The error at the outputs is the residual, read minus demanded. On the bits it is itself a bit,
