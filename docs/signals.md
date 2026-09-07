@@ -138,6 +138,9 @@ line's error is the sum over the gates it feeds. Two carries make two transports
   computes: the adjoint of a network that computes nothing in particular, value-blind. It agrees
   with the relay at the output layer, where nothing has been transported, and nowhere else.
 
+One hop of it worked out, with the same XOR gate feeding a second one, in
+[`signals-worked.md`](signals-worked.md).
+
 **Dropping σ′.** The kept signal is the derivative with respect to the logit; the dropped one is
 the derivative with respect to the stored entry, $T[a]$ or $H[a]$, which is what the substrate
 holds (a logit is a training-time coordinate). Since $\sigma' > 0$ nothing changes sign (a test),
