@@ -137,6 +137,17 @@ answer: at depth the bits fail before chattering matters. What the blind split's
 of (0.84–0.98, never 1.000; possibly monotone hidden features cannot carry the sum bits' parity) is
 not measured here.
 
+**Measured and read.** Measured: the relay reproduces autodiff; the blind split is at chance
+against the reference from the first hop; on the bits the relay does not train and the blind split
+does; dead gates are few; throttling does not rescue the relay; the hidden updates carry the blind
+split's learning; the gates' sensitivities drift positive under it; the relay's votes are unanimous
+and the blind split's are split. Read, not yet tested: that the blind split's instruction being a
+direction rather than a flip, so that entries can be content, is the *cause* that lets the circuit
+align. A relay given "stay" votes (the flip-exact credit, Signals III) is the test: if it trains,
+exactness with a restoring force was enough; if it does not, the stability of the feedback is the
+thing. One intuition was tried and dropped on the way: that the relay's votes cancel across cases
+(they do the opposite).
+
 **Also found.** The two probes on the first shape were kept; every conclusion held there. Arity 3
 was chosen so that depth bites (with 6 inputs a gate of arity 4 sees more of them); asked whether
 the finding is an artefact of it, `probes/2026-09-07-arity-4-check.py` reran the transports at
