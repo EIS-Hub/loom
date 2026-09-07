@@ -4,6 +4,10 @@ hard signals under Adam, plain SGD (rate normalised so the mean nonzero step is 
 initialisation, and a fifth and five times that) and sign-SGD; hard accuracy, the fraction of
 logits with a nonzero signal and the number of table bits flipping per step, along training."""
 
+import os
+
+os.environ.setdefault("JAX_PLATFORMS", "cpu")  # a probe never takes a GPU on its own
+
 import jax
 import jax.numpy as jnp
 import optax

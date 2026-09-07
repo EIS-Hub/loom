@@ -4,6 +4,10 @@ that receive anything (1 = every case pushes the same way, 0 = the cases cancel)
 message per case carries a product of ±1 sensitivities that depends on that case's other inputs;
 the uniform split's carries a constant. Exact per case may still be noise per entry."""
 
+import os
+
+os.environ.setdefault("JAX_PLATFORMS", "cpu")  # a probe never takes a GPU on its own
+
 import jax
 import jax.numpy as jnp
 

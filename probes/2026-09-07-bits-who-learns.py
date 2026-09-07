@@ -4,6 +4,10 @@ Adam 0.02 with the output layer always updated and the hidden layers frozen (p =
 (p = 0.02, 0.1) or free (p = 1). If the blind split with free hidden layers does no better than
 frozen ones, its hidden signal does nothing useful and it wins by doing no harm."""
 
+import os
+
+os.environ.setdefault("JAX_PLATFORMS", "cpu")  # a probe never takes a GPU on its own
+
 import jax
 import optax
 

@@ -1,4 +1,5 @@
-"""Gates: tests stay mechanics (no training condition under tests/); every module has its doc."""
+"""Gates: tests stay mechanics (no training condition under tests/); every module has its doc;
+every probe pins the CPU before it imports jax (a shared machine: nothing takes a GPU on its own)."""
 
 import pathlib
 import re
@@ -21,3 +22,13 @@ def test_every_module_has_its_doc():
     for m in (ROOT / "src" / "loom").glob("*.py"):
         if m.name != "__init__.py":
             assert (ROOT / "docs" / f"{m.stem}.md").exists(), f"docs/{m.stem}.md is missing"
+
+
+def test_every_probe_pins_the_cpu_before_importing_jax():
+    for f in (ROOT / "probes").glob("*.py"):
+        text = f.read_text()
+        pin, first_jax = (
+            text.find('os.environ.setdefault("JAX_PLATFORMS", "cpu")'),
+            text.find("import jax"),
+        )
+        assert 0 <= pin < first_jax, f"{f.name}: set JAX_PLATFORMS before importing jax"

@@ -4,6 +4,10 @@ the sign the signal predicts, s[a]·(1 - 2H[a]). The exact relay should be right
 path carries the credit; the blind split has no reason to be. Also: how many gates the relayed
 error never reaches (dead gates), per layer, on each pass."""
 
+import os
+
+os.environ.setdefault("JAX_PLATFORMS", "cpu")  # a probe never takes a GPU on its own
+
 import jax
 import jax.numpy as jnp
 

@@ -2,6 +2,10 @@
 (6, 24, 12, 4) at arity 3, left the reference at 0.93-0.98 hard accuracy: not a floor. Widths and
 arity swept to find one it solves on every seed."""
 
+import os
+
+os.environ.setdefault("JAX_PLATFORMS", "cpu")  # a probe never takes a GPU on its own
+
 import jax
 
 from loom import tasks, tile

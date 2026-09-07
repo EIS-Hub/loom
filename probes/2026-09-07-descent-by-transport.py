@@ -2,6 +2,10 @@
 accuracy at 500 and 2000 steps, two rates, three seeds. Which signals can descent follow down a
 carry chain, and does the value-blind split fail where the relay does not?"""
 
+import os
+
+os.environ.setdefault("JAX_PLATFORMS", "cpu")  # a probe never takes a GPU on its own
+
 import jax
 
 from loom import tasks, tile

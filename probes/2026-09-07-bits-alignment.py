@@ -4,6 +4,10 @@ fixed random feedback trains a network (feedback alignment), the gates should dr
 assumption: the fraction of nonzero hard sensitivities that are positive should rise from one half.
 Measured per layer along training under each hard signal (Adam 0.02)."""
 
+import os
+
+os.environ.setdefault("JAX_PLATFORMS", "cpu")  # a probe never takes a GPU on its own
+
 import jax
 import jax.numpy as jnp
 import optax

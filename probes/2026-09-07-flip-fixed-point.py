@@ -3,6 +3,10 @@ Is that a fixed point, a state where no entry wants to flip? After training unde
 of entries whose credit still points toward a flip, the bits flipping per step at the end, and the
 accuracy, against the same under the uniform split."""
 
+import os
+
+os.environ.setdefault("JAX_PLATFORMS", "cpu")  # a probe never takes a GPU on its own
+
 import jax
 import jax.numpy as jnp
 import optax

@@ -5,6 +5,10 @@ Two tests along training under Adam: the step-to-step sign consistency of each s
 trajectory, and throttling (each step updates a random fraction p of the logits, the rest frozen).
 If simultaneous flips are what thrashes the circuit, throttling should rescue the relay."""
 
+import os
+
+os.environ.setdefault("JAX_PLATFORMS", "cpu")  # a probe never takes a GPU on its own
+
 import jax
 import jax.numpy as jnp
 import optax

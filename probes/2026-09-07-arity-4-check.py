@@ -2,6 +2,10 @@
 shapes (four layers, and the three-layer shape the reference also solves), 6-bit addition, three
 seeds. Asked by Gabriel in review of PR #4: "why change to arity 3 all of the sudden?" """
 
+import os
+
+os.environ.setdefault("JAX_PLATFORMS", "cpu")  # a probe never takes a GPU on its own
+
 import jax
 
 from loom import tasks, tile

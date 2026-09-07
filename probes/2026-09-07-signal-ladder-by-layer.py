@@ -2,6 +2,10 @@
 initialisation on a shape where depth is forced (6-input addition, arity 3). Does the uniform split
 lose the reference's sign as the error travels deeper, where the relay keeps it?"""
 
+import os
+
+os.environ.setdefault("JAX_PLATFORMS", "cpu")  # a probe never takes a GPU on its own
+
 import jax
 import jax.numpy as jnp
 

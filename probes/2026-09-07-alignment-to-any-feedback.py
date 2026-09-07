@@ -4,6 +4,10 @@ alignment is the sign agreement between B and the circuit's actual Jacobian ∂r
 (the layered adjoint with the true sensitivities, seeded one output at a time), over the pairs
 where that Jacobian is nonzero. Measured per hidden layer along training under each signal."""
 
+import os
+
+os.environ.setdefault("JAX_PLATFORMS", "cpu")  # a probe never takes a GPU on its own
+
 import jax
 import jax.numpy as jnp
 import optax
