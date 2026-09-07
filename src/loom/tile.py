@@ -2,7 +2,7 @@
 
 A tile is data: per-layer table logits and per-layer wiring, nothing else. Two reads of the same
 data: the soft read (tables as probabilities) is what gradients flow through; the hard read (tables
-rounded to bits) is the deployed circuit. Every step above this one is measured on the hard read.
+rounded to bits) is the deployed circuit. Every check above this one is measured on the hard read.
 
 Re-lifted 2026-09 from blastema/substrate/circuit.py (run_layer, gen_wires), itself lifted from
 boolean_nca_cc. Dropped: gate groups, gate masks, the nop and noise inits.
@@ -10,10 +10,12 @@ boolean_nca_cc. Dropped: gate groups, gate masks, the nop and noise inits.
 
 from __future__ import annotations
 
-from typing import NamedTuple
+from typing import Literal, NamedTuple
 
 import jax
 import jax.numpy as jnp
+
+Read = Literal["soft", "hard"]
 
 
 class Tile(NamedTuple):
@@ -39,40 +41,49 @@ def init(key: jax.Array, widths: tuple[int, ...], arity: int = 4, scale: float =
     return Tile(tuple(logits), tuple(wires))
 
 
-def read(tables: jax.Array, inputs: jax.Array) -> jax.Array:
+def read(luts: jax.Array, inputs: jax.Array) -> jax.Array:
     """Read every gate's table at its inputs.
 
-    ``tables`` [gates, 2**arity] in [0, 1]; ``inputs`` [B, arity, gates] in [0, 1]. Each input bit
+    ``luts`` [gates, 2**arity] in [0, 1]; ``inputs`` [B, arity, gates] in [0, 1]. Each input bit
     halves the table (a binary decision diagram, first input = least significant address bit); with
     soft inputs this is the table's expectation under the product distribution of its inputs, so the
     read is exact on bits and differentiable in between.
     """
-    out = jnp.broadcast_to(tables, (inputs.shape[0], *tables.shape))  # [B, gates, 2**arity]
+    out = jnp.broadcast_to(luts, (inputs.shape[0], *luts.shape))  # [B, gates, 2**arity]
     for i in range(inputs.shape[1]):
         x = inputs[:, i, :, None]
         out = (1.0 - x) * out[..., ::2] + x * out[..., 1::2]
     return out[..., 0]
 
 
-def activations(tile: Tile, x: jax.Array, hard: bool = False) -> list[jax.Array]:
-    """Every layer's output, input first. ``x`` [B, n_in] in [0, 1].
+def tables(logits: jax.Array, mode: Read) -> jax.Array:
+    """One layer's tables as read: probabilities (``soft``) or bits (``hard``)."""
+    if mode not in ("soft", "hard"):
+        raise ValueError(f"read mode must be 'soft' or 'hard', got {mode!r}")
+    soft = jax.nn.sigmoid(logits)
+    return soft if mode == "soft" else jnp.round(soft)
 
-    ``hard`` rounds the tables to bits: the deployed circuit, whose gates emit bits for bit inputs.
-    """
+
+def run(
+    layers: tuple[jax.Array, ...], wires: tuple[jax.Array, ...], x: jax.Array
+) -> list[jax.Array]:
+    """Every layer's output, input first, for tables given per layer however they were made."""
     acts = [x]
-    for lgt, w in zip(tile.logits, tile.wires, strict=True):
-        tables = jax.nn.sigmoid(lgt)
-        if hard:
-            tables = jnp.round(tables)
-        acts.append(read(tables, acts[-1][:, w]))  # x[:, w] gathers [B, arity, gates]
+    for t, w in zip(layers, wires, strict=True):
+        acts.append(read(t, acts[-1][:, w]))  # x[:, w] gathers [B, arity, gates]
     return acts
 
 
-def forward(tile: Tile, x: jax.Array, hard: bool = False) -> jax.Array:
+def activations(tile: Tile, x: jax.Array, mode: Read = "soft") -> list[jax.Array]:
+    """Every layer's output, input first, on the ``soft`` or the ``hard`` read. ``x`` [B, n_in]."""
+    return run(tuple(tables(lgt, mode) for lgt in tile.logits), tile.wires, x)
+
+
+def forward(tile: Tile, x: jax.Array, mode: Read = "soft") -> jax.Array:
     """The output lines, [B, n_out]."""
-    return activations(tile, x, hard)[-1]
+    return activations(tile, x, mode)[-1]
 
 
-def accuracy(tile: Tile, x: jax.Array, y: jax.Array, hard: bool = True) -> jax.Array:
+def accuracy(tile: Tile, x: jax.Array, y: jax.Array, mode: Read = "hard") -> jax.Array:
     """Fraction of output bits right over the batch; on the hard read, the deployed accuracy."""
-    return jnp.mean(jnp.round(forward(tile, x, hard)) == y)
+    return jnp.mean(jnp.round(forward(tile, x, mode)) == y)

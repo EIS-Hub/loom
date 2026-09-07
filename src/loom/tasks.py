@@ -48,3 +48,21 @@ def add(n_in: int) -> tuple[jax.Array, jax.Array]:
     n_out = half + 1
     y = ((total[:, None] >> jnp.arange(n_out)[None, :]) & 1).astype(jnp.float32)
     return inputs(n_in), y
+
+
+def junta(n_in: int, n_out: int, k: int = 2):
+    """A task is a draw, key → (x, y): here a fresh k-junta on every key."""
+
+    def draw(key: jax.Array) -> tuple[jax.Array, jax.Array]:
+        return inputs(n_in), k_junta(key, n_in, n_out, k)
+
+    return draw
+
+
+def addition(n_in: int):
+    """A task is a draw, key → (x, y): here the same addition table whatever the key."""
+
+    def draw(key: jax.Array) -> tuple[jax.Array, jax.Array]:
+        return add(n_in)
+
+    return draw
