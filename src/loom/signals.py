@@ -27,6 +27,11 @@ class Signal(NamedTuple):
     via: Via = "autodiff"  # the transport from the residual to the logits
     surrogate: bool = True  # keep σ'(logit), the factor a chip storing bits cannot see
 
+    @property
+    def label(self) -> str:
+        """The coordinates as a name, e.g. ``soft·autodiff·σ'``; nothing is named by hand."""
+        return f"{self.on}·{self.via}·{'σ′' if self.surrogate else '1'}"
+
 
 REFERENCE = (
     Signal()
@@ -58,13 +63,29 @@ def straight_through(logits: jax.Array) -> jax.Array:
     return jnp.round(soft) + (soft - jax.lax.stop_gradient(soft))
 
 
-def compute(signal: Signal, tile: Tile, x: jax.Array, y: jax.Array) -> tuple[jax.Array, ...]:
-    """The signal's per-logit arrays."""
-    if signal.via != "autodiff" or not signal.surrogate:
-        raise NotImplementedError("the relay, the uniform split and dropping σ' arrive next chunk")
-    make = (lambda lg: tables(lg, "soft")) if signal.on == "soft" else straight_through
+def autodiff(
+    tile: Tile, x: jax.Array, y: jax.Array, on: Pass, surrogate: bool
+) -> tuple[jax.Array, ...]:
+    """The transport through everything, by autodiff: the gradient of the loss on the pass.
+
+    On the soft pass every factor is evaluated at soft tables and inputs. On the hard pass the
+    straight-through tables put the bits in the forward and σ'(z) in place of the rounding's
+    (zero) derivative, which is what ``surrogate=True`` means; dropping it is computed directly by
+    the relay, next chunk (dividing the gradient by σ' would be 0/0 at saturated logits).
+    """
+    if not surrogate:
+        raise NotImplementedError("dropping σ' arrives with the relay transport")
+    make = (lambda lg: tables(lg, "soft")) if on == "soft" else straight_through
 
     def on_pass(logits):
         return squared_error(run(tuple(make(lg) for lg in logits), tile.wires, x)[-1], y)
 
     return jax.grad(on_pass)(tile.logits)
+
+
+TRANSPORTS = {"autodiff": autodiff}  # the next chunk adds "relay" and "uniform"
+
+
+def compute(signal: Signal, tile: Tile, x: jax.Array, y: jax.Array) -> tuple[jax.Array, ...]:
+    """The signal's per-logit arrays: its transport, run on its pass, with or without σ'."""
+    return TRANSPORTS[signal.via](tile, x, y, signal.on, signal.surrogate)

@@ -16,7 +16,7 @@ what step 2 meta-learns.
 
 ## The window
 
-`window` is how many cases a step sees: all of them by default, the batched floor; or a random
+`window` is how many cases a step sees: all of them when `window=None`, the batched default; or a random
 window drawn from the stream of cases, as a deployed tile would see them. `window=1` is fully
 online: predict on one case, adapt, next case. Batched and online are one function with one
 argument, not two code paths, so the window can become an axis of a recipe.

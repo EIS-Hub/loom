@@ -9,7 +9,7 @@ target, and with what deploy gap?
 **Floor.** The reference, `SOFT_FLOOR`: hard accuracy 1.000 on 2-juntas for three seeds (the
 previous note).
 
-**Conditions.** `SOFT_FLOOR`; `BITS_FLOOR` (the same autodiff on the bits, Adam at 0.02 for 2000
+**Conditions.** `SOFT_FLOOR`; `HARD_FLOOR` (the same autodiff on the bits, Adam at 0.02 for 2000
 steps); and, in the sweep, unnamed variants of both over rate × budget.
 
 **Measured, at initialisation** (`probes/2026-09-07-soft-vs-bits-gradient.py`, random tiles,

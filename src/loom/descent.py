@@ -53,8 +53,9 @@ def descend(
 
 
 def fit(tile: Tile, x: jax.Array, y: jax.Array, steps: int = 500, **kw) -> Tile:
-    """Run ``steps`` steps of :func:`descend` and return the tile."""
-    return next(islice(descend(tile, x, y, **kw), steps - 1, None))
+    """Run ``steps`` steps of :func:`descend` and return the last tile (every step is computed)."""
+    *_, last = islice(descend(tile, x, y, **kw), steps)  # every step runs; only the last is kept
+    return last
 
 
 def trajectory(

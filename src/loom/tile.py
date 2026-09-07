@@ -41,15 +41,15 @@ def init(key: jax.Array, widths: tuple[int, ...], arity: int = 4, scale: float =
     return Tile(tuple(logits), tuple(wires))
 
 
-def read(tables: jax.Array, inputs: jax.Array) -> jax.Array:
+def read(luts: jax.Array, inputs: jax.Array) -> jax.Array:
     """Read every gate's table at its inputs.
 
-    ``tables`` [gates, 2**arity] in [0, 1]; ``inputs`` [B, arity, gates] in [0, 1]. Each input bit
+    ``luts`` [gates, 2**arity] in [0, 1]; ``inputs`` [B, arity, gates] in [0, 1]. Each input bit
     halves the table (a binary decision diagram, first input = least significant address bit); with
     soft inputs this is the table's expectation under the product distribution of its inputs, so the
     read is exact on bits and differentiable in between.
     """
-    out = jnp.broadcast_to(tables, (inputs.shape[0], *tables.shape))  # [B, gates, 2**arity]
+    out = jnp.broadcast_to(luts, (inputs.shape[0], *luts.shape))  # [B, gates, 2**arity]
     for i in range(inputs.shape[1]):
         x = inputs[:, i, :, None]
         out = (1.0 - x) * out[..., ::2] + x * out[..., 1::2]

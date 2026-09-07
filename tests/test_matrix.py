@@ -9,7 +9,7 @@ from loom import signals, tasks, tile
 from loom.signals import REFERENCE, Signal
 
 SUBSTRATES = {"lut": lambda key: tile.init(key, (4, 16, 8, 2))}
-SIGNALS = {"soft": REFERENCE, "bits": Signal("hard")}  # the next chunk adds the relay and uniform
+SIGNALS = {s.label: s for s in (REFERENCE, Signal("hard"))}  # named by their coordinates
 
 
 @pytest.mark.parametrize("substrate", SUBSTRATES)

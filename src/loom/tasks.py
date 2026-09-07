@@ -51,10 +51,18 @@ def add(n_in: int) -> tuple[jax.Array, jax.Array]:
 
 
 def junta(n_in: int, n_out: int, k: int = 2):
-    """A task family as a function of the key: a fresh k-junta each draw."""
-    return lambda key: (inputs(n_in), k_junta(key, n_in, n_out, k))
+    """A task is a draw, key → (x, y): here a fresh k-junta on every key."""
+
+    def draw(key: jax.Array) -> tuple[jax.Array, jax.Array]:
+        return inputs(n_in), k_junta(key, n_in, n_out, k)
+
+    return draw
 
 
 def addition(n_in: int):
-    """Addition as a task: the same truth table whatever the key."""
-    return lambda key: add(n_in)
+    """A task is a draw, key → (x, y): here the same addition table whatever the key."""
+
+    def draw(key: jax.Array) -> tuple[jax.Array, jax.Array]:
+        return add(n_in)
+
+    return draw

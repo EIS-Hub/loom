@@ -23,14 +23,14 @@ class Recipe(NamedTuple):
     signal: Signal  # which signal drives descent
     lr: float
     steps: int
-    window: int | None  # None: every case per step (batched); 1: fully online
+    window: int | None  # None: every case per step, the batched default; 1: fully online
     hidden: tuple[int, ...]  # widths between the task's inputs and outputs
     arity: int = 4
     scale: float = 1.0  # init scale of the logits
 
 
 SOFT_FLOOR = Recipe(REFERENCE, lr=0.1, steps=500, window=None, hidden=(16, 8))
-BITS_FLOOR = Recipe(Signal("hard"), lr=0.02, steps=2000, window=None, hidden=(16, 8))
+HARD_FLOOR = Recipe(Signal("hard"), lr=0.02, steps=2000, window=None, hidden=(16, 8))
 ONLINE_FLOOR = Recipe(REFERENCE, lr=0.05, steps=3000, window=1, hidden=(16, 8))
 
 
