@@ -18,8 +18,9 @@ The programme map (the two axes, the three steps, where every repo sits) is the 
   gate's own table, the blind uniform split), surrogate factor kept or not. Signals, rules and regimes
   are pure functions on local arrays; composition is plain arguments; locality is structural: what is
   not an argument cannot be read.
-- **One combinatorial test** runs every substrate × optimiser × signal combination the code claims
-  to support. **One check per step**, asserted in CI. Numbers live in the checks, nowhere else.
+- **Tests are mechanics; claims are science.** `tests/` asserts what the code does, `claims/` asserts
+  one qualitative statement per note under a **named recipe**, `notes/` holds the findings and their
+  numbers, `probes/` the scripts behind them. The method page is `docs/recipes.md`.
 - **No ladder, no rungs.** The step number is the landmark and never moves.
 
 ## The steps
@@ -47,7 +48,8 @@ later, tag-pinned). Ladders, registries, result tables. Mesh, engram, context, u
 
 ```bash
 pip install -e ".[dev]" && pre-commit install
-pytest                # the fast checks; -m slow for the long ones
+pytest                # the mechanics: the merge gate
+pytest claims         # the empirical claims under named recipes; -m slow for the long ones
 pyright --pythonpath "$(which python)"   # so it sees the env's jax
 ```
 
