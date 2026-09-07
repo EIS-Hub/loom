@@ -10,6 +10,5 @@ for seed in range(3):
     for base in (SOFT_FLOOR, HARD_FLOOR):
         for steps, lr in ((500, 0.1), (2000, 0.1), (2000, 0.02)):
             t, x, y = recipes.run(base._replace(steps=steps, lr=lr), task, seed)
-            print(
-                f"{seed}     {base.signal.on:4s}    {steps:5d}  {lr:<5}  {float(tile.accuracy(t, x, y)):.3f}"
-            )
+            acc = float(tile.accuracy(t, x, y))
+            print(f"{seed}     {base.signal.on:4s}    {steps:5d}  {lr:<5}  {acc:.3f}")
