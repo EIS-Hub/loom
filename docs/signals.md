@@ -64,17 +64,60 @@ r(u) = 0.08·0 + 0.02·1 + 0.72·1 + 0.18·0 = 0.74
 With bits $u = (1, 0)$ only index $10$ survives and $r = T[10] = 1$. In code, `signals.address`
 builds $P$ one input at a time, input $i$ being address bit $i$, the convention the halving `read` uses.
 
-On bits $P(\cdot \mid u)$ is thus the one-hot of the selected address. With the squared loss $L$,
-the gradient at one table entry is a product of three factors:
+On bits $P(\cdot \mid u)$ is thus the one-hot of the selected address. Now let the loss $L$ be
+the squared error at the circuit's outputs and ask how it moves with one logit of this gate. The
+read is linear in the entry, $\partial r / \partial T[a] = P(a \mid u)$, and the entry is the
+sigmoid of its logit, $\partial T[a] / \partial z[a] = \sigma'(z[a])$, so the chain rule gives a
+product of three factors:
 
-$$\frac{\partial L}{\partial z[a]} \;=\; e \cdot P(a \mid u) \cdot \sigma'(z[a]),$$
+$$\frac{\partial L}{\partial z[a]} \;=\; e \cdot P(a \mid u) \cdot \sigma'(z[a]).$$
 
-where $e = \partial L / \partial r$ is the **error at the gate's output**: the residual at the
-circuit's outputs, transported back through the downstream gates' local Jacobians,
+In words, per case:
+
+| symbol | what it is | where it comes from |
+|---|---|---|
+| $z[a]$ | the logit behind entry $a$; $T[a] = \sigma(z[a])$ | the tile's parameters |
+| $L$ | half the squared error at the circuit's outputs, over cases and output bits | the task |
+| $e = \partial L / \partial r$ | the **error at this gate's output**: how much the loss moves per unit move of $r$. At an output gate it is the residual, read minus demanded (over the mean's $N$); inside, it is the residual carried back through the gates downstream | elsewhere: the only factor the transport brings |
+| $P(a \mid u)$ | how much entry $a$ is addressed by the current inputs: the share of the output this entry is responsible for | the gate's own inputs, as above |
+| $\sigma'(z[a]) = T[a]\,(1 - T[a])$ | how much the entry moves when its logit moves: the sigmoid's slope, at most $1/4$, near $0$ once the entry is saturated at $0$ or $1$ | the gate's own logit |
+
+- **On bits the middle factor is one-hot**: only the entry the case addressed gets a gradient. On
+  soft inputs every entry gets a share, in proportion to $P$.
+- **Only the first factor comes from elsewhere.** $P$ and $\sigma'$ are local to the gate; $e$ is
+  what has to travel, and *how* it travels is the transport (the `via` coordinate).
+- **The third factor is the `surrogate` coordinate.** Kept, the gradient is with respect to the
+  logit; dropped, with respect to the entry. Over a batch the first two factors are summed over
+  cases and the third is shared: $\partial L/\partial z[a] = \sigma'(z[a]) \sum_b e_b\, P_b(a \mid u_b)$.
+
+Example, the same gate as an output gate with a soft table $T = (0.1, 0.9, 0.9, 0.1)$ (so
+$\sigma' = 0.09$ at every entry), inputs $u = (0.9, 0.2)$, hence $P = (0.08, 0.02, 0.72, 0.18)$,
+one case demanding $y = 1$:
+
+```
+r     = 0.08·0.1 + 0.02·0.9 + 0.72·0.9 + 0.18·0.1 = 0.692
+e     = r − y = −0.308                          (one case, one output: L = ½(r − y)²)
+∂L/∂z = e · P · σ′
+  00:  −0.308 · 0.08 · 0.09 = −0.0022
+  01:  −0.308 · 0.02 · 0.09 = −0.0006
+  10:  −0.308 · 0.72 · 0.09 = −0.0200
+  11:  −0.308 · 0.18 · 0.09 = −0.0050
+```
+
+Descent subtracts the gradient, so every entry rises toward this case's target, entry $10$ by far
+the most: a case pulls the entries it addressed, in proportion to how much it addressed them.
+Entry $11$ is pulled the wrong way for XOR; the case $(1, 1)$ pulls it back, and a table is the
+compromise between the cases that address it. On bits, $u = (1, 0)$ and $H = (0, 1, 1, 0)$ give
+$r = 1 = y$, $e = 0$ and no gradient at all: a right case teaches nothing on the bits. Had $H[10]$
+been $0$, $e = -1$ and only entry $10$ moves, by $-\sigma'(z[10])$ with the surrogate and by $-1$
+without.
+
+**Where $e$ comes from.** At an output gate, the residual. At a gate inside the circuit, the
+residual transported back through the downstream gates' local Jacobians,
 
 $$\frac{\partial r}{\partial u_j} = \sum_a P(a \mid u)\,\big(T[a \,|\, u_j{=}1] - T[a \,|\, u_j{=}0]\big),$$
 
-each gate passing error to its input $j$ weighted by how much its own table changes when $j$
+each gate passing error to its input $j$ weighted by how much its own read changes when $j$
 flips, at the other inputs' values. That transport *is* the relay through each gate's own table,
 and autodiff computes exactly it.
 
