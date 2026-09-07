@@ -35,17 +35,34 @@ $T = \sigma(z)$ and the hard one $H = \mathbb{1}[z > 0]$. Its read at inputs $u 
 
 $$r(u) = \sum_a P(a \mid u)\, T[a], \qquad P(a \mid u) = \prod_j u_j^{a_j} (1-u_j)^{1-a_j},$$
 
-In words: $T$ is the gate's table, $2^k$ entries in $[0,1]$; $a$ is one row of it, written as
-$k$ bits, $a_j$ being what that row says about input $j$; the sum runs over all $2^k$ rows. $u$ is
-what is actually at the inputs, $k$ numbers in $[0,1]$, $j$ running over the inputs. $P(a \mid u)$
-is the probability that the pattern present at the inputs is row $a$ when input $j$ is a 1 with
-probability $u_j$, independently: one factor per input, $u_j$ if the row has a 1 there and
-$1-u_j$ if it has a 0 (the exponents are that switch). The read is every row's entry weighted by
-how likely that row is to be the one addressed. On bits exactly one row has $P = 1$ and the read is
-the plain lookup; on soft inputs $P$ is a distribution over rows and the read is the table's
-expectation under it. Example, $k = 2$, XOR table $(0, 1, 1, 0)$ over rows $(00, 01, 10, 11)$,
-$u = (0.9, 0.2)$: $P = (0.08, 0.02, 0.72, 0.18)$ and $r = 0.02 + 0.72 = 0.74$; with bits
-$u = (1, 0)$ only row $10$ survives and $r = T[10] = 1$.
+In words, for one gate with $k$ inputs:
+
+| symbol | what it is | ranges over |
+|---|---|---|
+| $T$ | the gate's table, one entry in $[0,1]$ per input pattern; bits when hard, probabilities when soft | $2^k$ entries |
+| $a$ | one row of the table, written as $k$ bits; $a_j$ is what that row says about input $j$ | the sum: all $2^k$ rows |
+| $u$ | what is actually at the inputs, $k$ numbers in $[0,1]$; $u_j$ is input $j$ | the product: the $k$ inputs |
+| $P(a \mid u)$ | the probability that the pattern present at the inputs is row $a$, when input $j$ is a 1 with probability $u_j$, independently | one factor per input: $u_j$ if the row has a 1 there, $1-u_j$ if a 0 (the exponents are that switch) |
+| $T[a]$ | the table's entry at row $a$ | |
+| $r(u)$ | the gate's output: every row's entry weighted by how likely that row is to be the one addressed | |
+
+- On bits, exactly one row has $P = 1$ and the read is the plain lookup $T[a]$.
+- On soft inputs, $P$ is a distribution over rows, summing to 1, and the read is the table's
+  expectation under it. One formula covers both passes.
+
+Example, $k = 2$, the XOR table $T = (0, 1, 1, 0)$ over rows $(00, 01, 10, 11)$, inputs
+$u = (0.9, 0.2)$:
+
+```
+P(00 | u) = 0.1 · 0.8 = 0.08
+P(01 | u) = 0.1 · 0.2 = 0.02
+P(10 | u) = 0.9 · 0.8 = 0.72
+P(11 | u) = 0.9 · 0.2 = 0.18        (sum 1)
+r(u) = 0.08·0 + 0.02·1 + 0.72·1 + 0.18·0 = 0.74
+```
+
+With bits $u = (1, 0)$ only row $10$ survives and $r = T[10] = 1$. In code, `signals.address`
+builds $P$ row by row with input $i$ as address bit $i$, the convention the halving `read` uses.
 
 On bits $P(\cdot \mid u)$ is thus the one-hot of the selected address. With the squared loss $L$,
 the gradient at one table entry is a product of three factors:
