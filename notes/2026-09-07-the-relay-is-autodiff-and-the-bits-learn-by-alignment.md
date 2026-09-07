@@ -122,7 +122,14 @@ answer: at depth the bits fail before chattering matters. What the blind split's
 of (0.84–0.98, never 1.000; possibly monotone hidden features cannot carry the sum bits' parity) is
 not measured here.
 
-**Also found.** The two probes on the first shape were kept; every conclusion held there.
+**Also found.** The two probes on the first shape were kept; every conclusion held there. Arity 3
+was chosen so that depth bites (with 6 inputs a gate of arity 4 sees more of them); asked whether
+the finding is an artefact of it, `probes/2026-09-07-arity-4-check.py` reran the transports at
+arity 4 on the four-layer shape and on `(6, 32, 16, 4)`: on the bits the exact relay stays at
+chance (0.47–0.65) and the blind split trains, on four of six runs to 1.000. What arity changes is
+the soft pass: at arity 4 the blind split reaches the target on some seeds (1.000, 1.000, 0.977 on
+the four-layer shape), so "the blind split stalls" measures how hard depth bites, and arity 3 is
+where it bites cleanly. `Recipe.arity` stays 4 by default; only the two deep recipes say 3.
 
 **Claims left behind.** `claims/test_2026_09_07_transports.py`: addition under the deep floor; the
 uniform split at chance against the reference from the first hop and exact at the output layer;
