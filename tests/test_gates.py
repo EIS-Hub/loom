@@ -27,8 +27,6 @@ def test_every_module_has_its_doc():
 def test_every_probe_pins_the_cpu_before_importing_jax():
     for f in (ROOT / "probes").glob("*.py"):
         text = f.read_text()
-        pin, first_jax = (
-            text.find('os.environ.setdefault("JAX_PLATFORMS", "cpu")'),
-            text.find("import jax"),
-        )
-        assert 0 <= pin < first_jax, f"{f.name}: set JAX_PLATFORMS before importing jax"
+        pin = text.find('os.environ.setdefault("JAX_PLATFORMS", "cpu")')
+        imports = [i for i in (text.find("\nimport jax"), text.find("\nfrom loom")) if i >= 0]
+        assert imports and 0 <= pin < min(imports), f"{f.name}: pin the CPU before jax or loom"
