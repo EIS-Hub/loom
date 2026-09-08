@@ -11,7 +11,7 @@ hidden inside tests produces, so the boundary is a directory rather than a habit
 | **recipe** | `src/loom/recipes.py` | a named, frozen training condition: signal, step size, budget, window, hidden widths, arity, init scale | never a literal in a claim or a note; never overridden in place |
 | **test** | `tests/` | mechanics of the code; the merge gate | never a training loop |
 | **claim** | `claims/`, one file per note | a qualitative statement on the smallest instance under a named recipe, with the seeds that make it a claim | not a sweep, a table or a figure; not the science record |
-| **note** | `notes/YYYY-MM-DD-slug.md` | the finding and the path to it: the question as X against its floor, how the floor was chosen, the recipes by name, the numbers, the hypotheses that fell and the one that held, the claims it left behind, what would change it | never edited; a later note supersedes by pointer; no status, no tiers |
+| **note** | `notes/YYYY-MM-DD-slug.md` | the finding and the path to it (per-seed numbers stay in the tables, with a bold mean ± sd beside them): the question as X against its floor, how the floor was chosen, the recipes by name, the numbers, the hypotheses that fell and the one that held, the claims it left behind, what would change it | never edited; a later note supersedes by pointer; no status, no tiers |
 | **probe** | `probes/YYYY-MM-DD-slug.py` | the script behind a note when a few lines are not enough; one file, imports only loom | never imported; no shared probe utilities; deletable once its note is superseded |
 
 ## How they interact

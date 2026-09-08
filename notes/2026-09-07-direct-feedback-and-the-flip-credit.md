@@ -32,17 +32,17 @@ transport.
 **Measured in training** (`probes/2026-09-07-descent-by-transport.py`; hard accuracy at 500 /
 2000 steps, seeds 0–2):
 
-| signal | rate | seed 0 | seed 1 | seed 2 |
-|---|---|---|---|---|
-| soft.uniform.entry | 0.1 | 0.922 / 0.934 | 0.938 / 0.941 | 0.863 / 0.895 |
-| soft.direct.entry | 0.1 | 0.855 / 0.828 | 0.773 / 0.742 | 0.742 / 0.770 |
-| soft.direct.entry | 0.02 | 0.820 / 0.746 | 0.805 / 0.770 | 0.699 / 0.773 |
-| hard.relay.entry | 0.02 | 0.484 / 0.500 | 0.492 / 0.512 | 0.535 / 0.539 |
-| hard.uniform.entry | 0.02 | 0.867 / 0.938 | 0.820 / 0.926 | 0.812 / 0.844 |
-| hard.direct.entry | 0.1 | 0.715 / 0.629 | 0.660 / 0.730 | 0.551 / 0.680 |
-| hard.direct.entry | 0.02 | 0.656 / 0.633 | 0.707 / 0.688 | 0.500 / 0.652 |
-| hard.flip.entry | 0.1 | 0.941 / 0.941 | 0.859 / 0.859 | 0.895 / 0.895 |
-| hard.flip.entry | 0.02 | 0.883 / 0.883 | 0.902 / 0.902 | 0.922 / 0.922 |
+| signal | rate | seed 0 | seed 1 | seed 2 | **mean ± sd at 2000** |
+|---|---|---|---|---|---|
+| soft.uniform.entry | 0.1 | 0.922 / 0.934 | 0.938 / 0.941 | 0.863 / 0.895 | **0.923 ± 0.025** |
+| soft.direct.entry | 0.1 | 0.855 / 0.828 | 0.773 / 0.742 | 0.742 / 0.770 | **0.780 ± 0.044** |
+| soft.direct.entry | 0.02 | 0.820 / 0.746 | 0.805 / 0.770 | 0.699 / 0.773 | **0.763 ± 0.015** |
+| hard.relay.entry | 0.02 | 0.484 / 0.500 | 0.492 / 0.512 | 0.535 / 0.539 | **0.517 ± 0.020** |
+| hard.uniform.entry | 0.02 | 0.867 / 0.938 | 0.820 / 0.926 | 0.812 / 0.844 | **0.903 ± 0.051** |
+| hard.direct.entry | 0.1 | 0.715 / 0.629 | 0.660 / 0.730 | 0.551 / 0.680 | **0.680 ± 0.051** |
+| hard.direct.entry | 0.02 | 0.656 / 0.633 | 0.707 / 0.688 | 0.500 / 0.652 | **0.658 ± 0.028** |
+| hard.flip.entry | 0.1 | 0.941 / 0.941 | 0.859 / 0.859 | 0.895 / 0.895 | **0.898 ± 0.041** |
+| hard.flip.entry | 0.02 | 0.883 / 0.883 | 0.902 / 0.902 | 0.922 / 0.922 | **0.902 ± 0.020** |
 
 The flip credit on the soft pass is not a signal (0.55–0.62): the cost of a flip is a bits
 quantity, and the soft cells were removed from `CELLS`.
@@ -90,13 +90,13 @@ credited the wiring-shaped split with asking every gate to "be monotone". The au
 
 | fixed feedback | seeds 0 · 1 · 2 |
 |---|---|
-| uniform, the path counts | 0.938 · 0.926 · 0.844 |
+| uniform, the path counts | 0.938 · 0.926 · 0.844 (**0.903 ± 0.051**) |
 | direct, random ±1, three draws | 0.63–0.77, every draw below uniform |
 | direct, random ±1, **masked to the outputs each gate can reach**, two draws | 0.953 · 0.863 · 0.879 and 0.945 · 0.816 · 0.852 |
-| reachability alone, all +1 | 0.914 · 0.898 · 0.859 |
-| path counts with a random sign per gate and output | 0.914 · 0.977 · 0.879 |
-| the layered adjoint with a carry of −1 on every edge | 0.902 · 0.840 · 0.836 |
-| the layered adjoint with a random fixed sign per edge, two draws | 0.840 · 0.949 · 0.816 and 0.961 · 0.883 · 0.812 |
+| reachability alone, all +1 | 0.914 · 0.898 · 0.859 (**0.890 ± 0.028**) |
+| path counts with a random sign per gate and output | 0.914 · 0.977 · 0.879 (**0.923 ± 0.050**) |
+| the layered adjoint with a carry of −1 on every edge | 0.902 · 0.840 · 0.836 (**0.859 ± 0.037**) |
+| the layered adjoint with a random fixed sign per edge, two draws | 0.840 · 0.949 · 0.816 and 0.961 · 0.883 · 0.812 (**0.877 ± 0.066**) |
 
 The mask alone closes the gap; random signs on the path counts train as well as the counts; a
 negative or a random carry trains as well as +1, and the gates drift to whatever sign they are
