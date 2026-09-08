@@ -81,7 +81,7 @@ def test_direct_feedback_through_the_path_counts_is_the_uniform_split():
     per_output = [a[:n_out] for a in acts]  # one "case" per output; the carry ignores the values
     counts = [c.T for c in signals.layered(t, per_output, "soft", jnp.eye(n_out), signals.ones)]
     via_bus = signals.readout(
-        signals.direct(t, signals.seed(acts, y), counts), t, acts, "soft", "entry"
+        signals.direct(signals.seed(acts, y), counts), t, acts, "soft", "entry"
     )
     via_layers = signals.compute(Signal("soft", "uniform", "entry"), t, x, y)
     for a, b in zip(via_bus, via_layers, strict=True):
@@ -97,6 +97,11 @@ def test_reachability_counts_wiring_paths_and_masks_the_bus():
     assert any(jnp.any(c == 0) for c in counts[:-1])  # some gate cannot reach some output
     masked = signals.compute(Signal("hard", "reachable", "entry"), t, x, y)
     assert all(jnp.all(jnp.isfinite(a)) for a in masked)
+
+
+def test_every_via_inside_the_frame_has_an_adjoint():
+    inside = {s.via for s in signals.CELLS} - {"autodiff", "flip"}  # the check, and the exception
+    assert set(signals.ADJOINTS) == inside
 
 
 def test_labels_are_ascii_names_and_no_code_reads_them():

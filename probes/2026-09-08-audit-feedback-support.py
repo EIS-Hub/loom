@@ -39,7 +39,7 @@ def through_bus(matrices_of):
     def f(t):
         acts = activations(t, x, "hard")
         e = signals.seed(acts, y)
-        return signals.readout(signals.direct(t, e, matrices_of(t, acts)), t, acts, "hard", "entry")
+        return signals.readout(signals.direct(e, matrices_of(t, acts)), t, acts, "hard", "entry")
 
     return f
 

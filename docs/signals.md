@@ -8,49 +8,47 @@ XOR gate in [`signals-worked.md`](signals-worked.md).
 
 ## A signal is three coordinates, not a name
 
-| coordinate | values | meaning |
-|---|---|---|
-| `on` | `soft`, `hard` | the pass the circuit is linearised on: the soft forward, or the deployed bits |
-| `via` | `autodiff`, `relay`, `uniform`, `direct`, `reachable`, `flip` | whose transposed Jacobian carries the error back to each gate: the circuit's own (by autodiff, or locally by the relay), the same wiring with every gate a sum (`uniform`, feedback alignment shaped by the wiring), a fixed random ±1 bus from the outputs (`direct`, direct feedback alignment), that bus masked to the outputs each gate can reach (`reachable`), or, outside the frame, the exact credit of one bit flip (`flip`, on the bits only) |
-| `to` | `logit`, `entry` | the parameter the local partial is taken to: the logit, or the stored entry, which leaves out σ′(logit) |
+| coordinate | values | meaning | in adjoint terms |
+|---|---|---|---|
+| `on` | `soft`, `hard` | the pass the derivatives are taken on: the soft forward, or the deployed bits | where the system is linearised (below) |
+| `via` | `autodiff`, `relay`, `uniform`, `direct`, `reachable`, `flip` | how the error at the outputs reaches each gate | whose transposed Jacobian carries the error: the circuit's own (by autodiff, or locally by the relay); the same wiring with every gate a sum (`uniform`, feedback alignment shaped by the wiring); a fixed random ±1 bus from the outputs (`direct`, direct feedback alignment), or that bus restricted to the outputs a gate can reach (`reachable`); outside the frame, the exact credit of one bit flip (`flip`, on the bits only) |
+| `to` | `logit`, `entry` | which parameter the local partial stops at: the logit $z[a]$, or the stored entry $T[a]$ one step earlier, which leaves out σ′ | both are per entry; a per-gate signal would be the adjoint variable itself, which nothing consumes yet |
 
 `REFERENCE = Signal("soft", "autodiff", "logit")` is the true gradient of the loss on the soft
 pass: the idealised signal every other one is scored against. `Signal("hard")` is the same
 autodiff run on the bits, the signal usually called straight-through. Naming products would
 explode; naming coordinates keeps the table small and makes every combination a cell the matrix
 can visit: `signals.CELLS` lists the twenty the code supports (autodiff cannot take the partial
-to the entry; the flip credit is a bits quantity). A label such as `hard.relay.entry` is the coordinates joined, a display name and a
-test id; a gate asserts no code branches on one.
+to the entry; the flip credit is a bits quantity). A label such as `hard.relay.entry` is the
+coordinates joined, a display name and a test id; a gate asserts no code branches on one.
+
+**Linearised** means that every derivative below is taken at a state. On the soft pass that state
+is the soft tables and the soft activations, and the derivatives are the ordinary ones. On the
+bits it is the rounded tables and the bit activations: every derivative of the read becomes a
+difference of two reads, exact for the flip of one input, and the one derivative that does not
+exist there, the rounding's, is what the `to` coordinate settles.
 
 ## One frame: the adjoint method
 
 Every signal is an instance of the adjoint method, which says that the gradient at a parameter is
 the adjoint variable at the place the parameter acts, times that place's local partial with
-respect to the parameter. For a gate $g$ and one of its logits,
-
-$$\frac{\partial L}{\partial z[a]} = \lambda_g \cdot \frac{\partial r_g}{\partial z[a]}
-= \underbrace{e}_{\lambda_g} \cdot \underbrace{P(a \mid u) \cdot \sigma'(z[a])}_{\partial r_g / \partial z[a]},$$
-
-the three factors derived below. The adjoint variable $e$ is carried back from the outputs
-through a transposed Jacobian; the local partial never leaves the gate. The three coordinates are
-three choices inside that formula:
-
-| coordinate | in adjoint terms |
-|---|---|
-| `on` | where the system is linearised: at the soft state, or at the bits |
-| `via` | whose transposed Jacobian carries $\lambda$: the circuit's own, computed by autodiff or locally by the relay; the all-sums network's on the same wiring (uniform); a fixed one-layer network's from the outputs to every gate (direct), or to the gates that can reach each output (reachable) |
-| `to` | which parameter the local partial is taken to: the logit, or the stored entry |
+respect to the parameter. Here the place is a gate: the adjoint variable is the error at its
+output, carried back from the loss through a transposed Jacobian, and the local partial never
+leaves the gate. The three coordinates are the three choices inside that sentence: where the
+derivatives are taken (`on`), whose transposed Jacobian carries the error (`via`), which parameter
+the partial stops at (`to`). The formula is item 4 below, once its symbols exist.
 
 The frame also says what is *outside* it: a signal carrying a second-order term, the exact credit
 of a bit flip, is not an adjoint. A learned transport is the adjoint of a network with learned
-Jacobians; the rule of step 3 is a learned readout in place of the product
-$\lambda \cdot \partial r / \partial \theta$. And the frame is the *spatial* adjoint of one forward
-pass, depth being its only axis. The online axis, a window of cases, an error that arrives later,
-the pool's episodes, is the other side of the same duality: forward sensitivities carried along
-time (RTRL and its approximations, e-prop's eligibility traces), with their own information and
-memory costs. A reverse adjoint over depth does not by itself give an online rule over time; that
-object enters at step 2 and gets its own name there. The code is laid out in the frame's order:
-the seed, the local partials, the adjoints, the readout, then one function per `via`.
+Jacobians; the rule of step 3 is a learned readout in place of the product of adjoint variable
+and local partial. And the frame is the *spatial* adjoint of one forward pass, depth being its
+only axis. The online axis, a window of cases, an error that arrives later, the pool's episodes,
+is the other side of the same duality: forward sensitivities carried along time (RTRL and its
+approximations, e-prop's eligibility traces), with their own information and memory costs. A
+reverse adjoint over depth does not by itself give an online rule over time; that object enters
+at step 2 and gets its own name there. The code is laid out in the frame's order: the seed, the
+local partials, the two recursions that make the adjoint variable, the readout, the adjoints a
+`via` can choose, and `compute`, which is the frame in one line.
 
 ## The maths, in order
 
@@ -66,7 +64,8 @@ $P(a \mid u)$, the **address distribution** (`signals.address`), is the probabil
 inputs together spell index $a$ when each $u_j$ is read as the probability that input $j$ is a 1,
 independently: one factor per input. On bits it is the one-hot of the index the inputs spell and
 the read is a lookup; on soft inputs it is a distribution over the entries and the read is the
-table's expectation under it. One formula, both passes.
+table's expectation under it. One formula, both passes. Every symbol, and an XOR example carried
+through, in [`signals-worked.md`](signals-worked.md).
 
 **2. The loss and its seed.** The loss is half the squared error over cases and output bits,
 chosen because its derivative at an output *is* the residual, read minus demanded, in every pass:
@@ -82,59 +81,76 @@ $$\frac{\partial r}{\partial T[a]} = P(a \mid u), \qquad \frac{\partial T[a]}{\p
 The first is the address distribution again (entry ← output); the second (`signals.slope`) is
 at most $1/4$ and near $0$ once the entry is saturated. `to="entry"` stops at the first.
 
-**4. The gradient at one gate, three factors.** Chain rule:
+**4. The gradient at one gate, three factors.** Write $e_g = \partial L / \partial r_g$ for the
+error at *this* gate's output, whatever brought it there. The chain rule through items 3 is
 
-$$\frac{\partial L}{\partial z[a]} \;=\; e \cdot P(a \mid u) \cdot \sigma'(z[a]),$$
+$$\frac{\partial L}{\partial z[a]}
+= \frac{\partial L}{\partial r_g} \cdot \frac{\partial r_g}{\partial T[a]} \cdot \frac{\partial T[a]}{\partial z[a]}
+= e_g \cdot P(a \mid u) \cdot \sigma'(z[a]).$$
 
-with $e = \partial L / \partial r_g$ the error at *this* gate's output.
+This is the adjoint method's formula: $e_g$ is the adjoint variable at the gate, and
+$P \cdot \sigma'$ is the gate's local partial to its parameter.
 
 - On bits the middle factor is one-hot: only the entry the case addressed gets a gradient. On
   soft inputs every entry gets a share, in proportion to $P$.
-- Only the first factor comes from elsewhere. $P$ and $\sigma'$ are local to the gate; $e$ is
+- Only the first factor comes from elsewhere. $P$ and $\sigma'$ are local to the gate; $e_g$ is
   what has to travel, and *how* it travels is the `via` coordinate.
 - Over a batch the first two factors are summed over cases and the third is shared:
-  $\partial L/\partial z[a] = \sigma'(z[a]) \sum_b e_b\, P_b(a \mid u_b)$. That sum is the
-  **readout** (`signals.readout`): the adjoint variables against the address distribution, times
-  the slope when `to="logit"`.
+  $\partial L/\partial z[a] = \sigma'(z[a]) \sum_b e_{g,b}\, P_b(a \mid u_b)$. That sum is the
+  **readout** (`signals.readout`), item 7.
 
-**5. The sensitivity.** How much a gate's read moves with each input, the gate's row of the
-Jacobian. The read is multilinear, so it is a difference of two reads at the other inputs'
-current values, equivalently the table's difference under the address distribution:
+The symbols one by one, and the XOR gate's four gradients worked out, in
+[`signals-worked.md`](signals-worked.md).
 
-$$\frac{\partial r}{\partial u_j} = r(u \,|\, u_j{=}1) - r(u \,|\, u_j{=}0) = \sum_a P(a \mid u)\,\big(T[a \,|\, u_j{=}1] - T[a \,|\, u_j{=}0]\big).$$
+**5. The layered adjoint** (`signals.layered`): where $e_g$ comes from. At an output gate it is
+the seed. One layer back, a line's error is the sum, over the gates $h$ it feeds, of $h$'s error
+times a *carry*, one number per input of $h$:
 
-On bits: whether flipping that input flips the output, in $\{-1, 0, 1\}$ (`signals.sensitivity`).
+$$e_g = \sum_{h \text{ fed by } g} e_h \cdot c_{h,j}.$$
 
-**6. The layered adjoint** (`signals.layered`). $\lambda$ at the output gates is the seed. One
-layer back, a line's $\lambda$ is the sum, over the gates $h$ it feeds, of $h$'s $\lambda$ times a
-*carry*:
+The forward gathers each gate's inputs along the wiring, `u[:, w]`; the recursion scatters and
+adds along the same wiring, `zeros.at[:, w].add(...)`, which is the transpose of the gather. So
+it applies the transposed Jacobian of the forward pass layer by layer from the outputs, as
+EventProp does for a spiking network with time in place of depth. Two carries make two transports.
 
-$$\lambda_g = \sum_{h \text{ fed by } g} \lambda_h \cdot c_{h,j}, \qquad
-c_{h,j} = \frac{\partial r_h}{\partial u_{h,j}} \;\text{(relay)} \quad\text{or}\quad c_{h,j} = 1 \;\text{(uniform)}.$$
+*The relay's carry is the gate's sensitivity*, how much $h$'s read moves with its input $j$: its
+row of the Jacobian. The read is multilinear, so it is a difference of two reads at the other
+inputs' current values, equivalently the table's difference under the address distribution:
 
-The forward gathers each gate's inputs along the wiring, `u[:, w]`; the adjoint scatters and adds
-along the same wiring, `zeros.at[:, w].add(...)`, which is the transpose of the gather. So the
-recursion applies the transposed Jacobian of the forward pass layer by layer from the outputs,
-as EventProp does for a spiking network with time in place of depth. With the sensitivity as the
-carry it is the chain rule, and it reproduces autodiff to float precision on both passes (a test):
-`relay` is what a chip would run, `autodiff` how we check it. With ones as the carry the
-*transport* is the exact transpose of a different network, the same wiring with every gate a
-sum, so $\lambda$ counts wiring paths from each gate to each output: value-blind, a fixed feedback.
-The signal as a whole is not that network's gradient, since the seed and the address are the
-LUT circuit's own; it is a transpose identity followed by an empirical fact about training. That
-is feedback alignment shaped by the wiring (`uniform`).
+$$c_{h,j} = \frac{\partial r_h}{\partial u_{h,j}} = r_h(u \,|\, u_j{=}1) - r_h(u \,|\, u_j{=}0) = \sum_a P(a \mid u)\,\big(T[a \,|\, u_j{=}1] - T[a \,|\, u_j{=}0]\big),$$
 
-**7. The direct adjoint** (`signals.direct`). No layers: $\lambda$ at every hidden gate is the
-seed through a fixed matrix, $\lambda_g = \sum_o B[g, o]\, e_o$, with $B$ random ±1 drawn once
-from the tile's shape and the identity at the output layer, whose gates read their own residual.
-Direct feedback alignment (`direct`): what a bus and a coefficient per gate would compute. A test
-asserts that the same construction with $B$ = the wiring's path counts (`signals.reachability`)
-is the uniform split; `reachable` is the random $B$ masked to where those counts are nonzero.
+on bits whether flipping that input flips the output, in $\{-1, 0, 1\}$ (`signals.sensitivity`).
+With it the recursion is the chain rule, and it reproduces autodiff to float precision on both
+passes (a test): `relay` is what a chip would run, `autodiff` how we check it.
 
-**8. The readout**, item 4's sum, closes the frame: a signal is a choice of adjoint, then
-$s[a] = \sum_b \lambda_{g,b}\, P_b(a \mid u_b)$, times $\sigma'(z[a])$ when `to="logit"`.
+*The uniform split's carry is one.* The *transport* is then the exact transpose of a different
+network, the same wiring with every gate a sum, so the error at a gate counts the wiring paths
+from it to each output: value-blind, a fixed feedback. The signal as a whole is not that
+network's gradient, since the seed and the address are the LUT circuit's own; it is a transpose
+identity followed by an empirical fact about training. That is feedback alignment shaped by the
+wiring (`uniform`). One hop of both, worked out on the XOR gate feeding a second one, in
+[`signals-worked.md`](signals-worked.md).
 
-**9. Outside the frame: the flip credit** (`flip`). On the bits an entry does not move, it
+**6. The direct adjoint** (`signals.direct`). No layers: the error at every hidden gate is the
+seed through a fixed matrix, $e_g = \sum_o B[g, o]\, e_o$, with $B$ random ±1 drawn once from the
+tile's shape and the identity at the output layer, whose gates read their own residual. Direct
+feedback alignment (`direct`): what a bus and a coefficient per gate would compute.
+
+*Reachability.* A gate can reach an output when a chain of wires leads from the gate to it. The
+number of such chains is the wiring's **path count**, $R[g, o]$, and it is itself a layered
+adjoint: the all-sums recursion (carry one) seeded with one output at a time, so that each seed's
+error at a gate is its number of paths to that output (`signals.reachability`; a test asserts
+that the direct adjoint with $B = R$ is the uniform split). Zero means the gate cannot reach the
+output. `reachable` is the random bus with $B$ masked to where $R > 0$: the same coefficients,
+silent for outputs a gate has no path to. It costs a gate one bit per output, and it matters
+because feedback from an unreachable output is noise the gate cannot cancel, which the audit
+found to be the whole difference between the bus and the wiring-shaped split.
+
+**7. The readout** (`signals.readout`), item 4's sum, closes the frame: a signal is a choice of
+adjoint, then $s[a] = \sum_b e_{g,b}\, P_b(a \mid u_b)$, times $\sigma'(z[a])$ when `to="logit"`.
+In code, `compute` is exactly that: the seed, the adjoint `via` chooses, the readout.
+
+**8. Outside the frame: the flip credit** (`flip`). On the bits an entry does not move, it
 flips, and the loss change of a flip has two terms per output it reaches, $\Delta_o \in \{-1,0,1\}$:
 
 $$\Delta L = \sum_o \big( e_o\, \Delta_o + \tfrac{1}{2} |\Delta_o| \big).$$
