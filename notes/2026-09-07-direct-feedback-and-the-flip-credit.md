@@ -64,7 +64,12 @@ not "the number of outputs a flip changes" but the number of live paths to them
 5 with four outputs. So the credit is exact for one flip in the upper layers (88–100 % of entries,
 sign 95–100 %) and inexact at the input layer (67–78 %, sign 88–98 %). At the end state an
 exhaustive scan of all 672 single flips finds 0 / 1 / 0 that would still improve the loss, and an
-oracle continuation gains 0.004: the fixed point holds in substance. (2) It is not "greedy
+oracle continuation gains 0.004: the fixed point holds in substance. The corpus audit of the
+same day (Codex, read 2026-09-08) supplied the mechanism in the other direction: where a line
+branches into two paths that reconverge, the credit can *under*-estimate as well, since each path
+alone can have zero sensitivity while flipping the line moves both; its counterexample runs
+against the code in `probes/2026-09-08-flip-credit-counterexample.py` (predicted 0, actual −½;
+and with both paths live, predicted −1, actual −½). (2) It is not "greedy
 coordinate descent one entry at a time": the audit's true greedy single-flip descent on the exact
 loss change stops lower (0.852 / 0.875) than the credit under Adam on the same tiles
 (0.883 / 0.902), and greedy descent on the credit itself cycles. Adam's many simultaneous early
@@ -140,7 +145,10 @@ within 0.1 of chance; restricting the bus to reachable outputs lifts it above th
 above 0.75.
 
 **What would change it.** Escaping the flip credit's local optimum: a temperature, or pairs of
-flips. What reaches 1.000 reliably on the bits, if anything fixed does. The second substrate,
+flips. The comparators the corpus audit names and this note lacked: differentiable weightless
+networks (DWN), whose LUT gradients are finite differences of table entries like our sensitivity,
+BOLD, and the recent depth results on straight-through, against which "one hidden layer" was
+measured here on one shape and one task. What reaches 1.000 reliably on the bits, if anything fixed does. The second substrate,
 where the soft pass is what the fabric computes and the whole bits problem may not arise. And the
 rule of step 3, which receives λ and could learn to use a blind, stable feedback better than
 descent does.

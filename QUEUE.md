@@ -9,7 +9,7 @@ holds the next three; the progression below it is the plan they are drawn from.
 | 1 | 0 | One tile computes: LUT tables as a pytree, wiring as indices, soft and hard read, truth-table tasks, direct descent as the floor | science | 25 min | none | landed (#2) |
 | 2 | 1 | Signals I: the read mode as an axis of the combinatorial test (soft, straight-through on the hard tables); what a local update may read (nothing, task identity, error) | science | 20 min | 1 | landed (#3) |
 | 3 | 1 | Signals II and III, one story under the adjoint frame: the relay and the uniform split as two carries of the layered adjoint; the partial to the entry; direct feedback as a second adjoint; the flip credit outside the frame; the ladder scored on a shape where depth is forced; the physical-cost table; the maths in order in `docs/signals.md`; two notes | science | 70 min (oversize, Gabriel's call) | 2 | open (#4) |
-| 4 | 2 | Workshop I: the pool of tile states of every age; the smallest rule Δ = −η · e · P · σ′ (the three factors multiplied) with only η meta-learned from a non-functional start; the train/held-out task split; run with the signals a chip would have (the soft relay without σ′; on the bits, whatever chunk 4 finds trains) | science | 30 min | 3 | queued |
+| 4 | 2 | Workshop I: the pool of tile states of every age; the smallest rule Δ = −η · e · P · σ′ (the three factors multiplied) with only η meta-learned from a non-functional start, a fixed operand budget; the train/held-out task split; run with the signals a chip would have (the soft relay to the entry; on the bits, the wiring-shaped feedback and the flip credit); controls kept throughout: an output-only baseline, and the feedback mechanism varied separately from any state | science | 30 min | 3 | queued |
 | 5 | 3 | The rule: a small shared g over the three factors, replacing the product in the same workshop; value-awareness at the rule level as an ablation: g reads the signal alone, then its own inputs and output too | science | 40 min | 5 | queued |
 
 ## The progression the queue is drawn from (2026-09-07)
@@ -23,9 +23,13 @@ of the three-factor rules of the local-learning literature. The rule grows along
 2. **The rule as a function** (chunk 5): a shared `g` over the three factors, free to weight, gate
    or ignore them.
 3. **A hidden state per gate** (step 3, continued): `g` gains a carry. With `window = 1` and an
-   error that arrives after the addressing, the carry has to become an eligibility trace to work;
-   nothing is added by hand, the regime forces it. The trace is state, not parameters, which is how
-   one shared rule gives every gate its own trace.
+   error that arrives after the addressing, the carry has to bridge the delay to work; nothing is
+   added by hand, the regime forces it. The state is called an eligibility trace only once its
+   credit-bearing role against the delayed error is shown, not from persistence alone (the corpus
+   audit's rule, 2026-09-08). The trace is state, not parameters, which is how one shared rule
+   gives every gate its own; that this is compatible is known (Maoutsa; Shervani-Tabar and
+   Rosenbaum), so the question here is transfer, not existence. The online axis is the forward
+   side of the adjoint duality, its own object with its own costs.
 4. **A learned transport** (step 3, continued): the message a gate sends back becomes an output of
    `g`. Relay, uniform and direct feedback become points the rule can find; the alignment finding
    says it should prefer the stable ones.
@@ -38,6 +42,12 @@ of the three-factor rules of the local-learning literature. The rule grows along
    coefficient the rule could own), **the second substrate** (step 7: the soft pass by coin flips,
    a bits fabric with stochastic inputs computes the soft read in expectation and an analogue rate
    is a probability by construction), **the maze** (step 8).
+
+The hypothesis the workshop tests, in the corpus audit's falsifiable form: **one bounded-state
+local rule can learn useful computation on fresh sparse hard LUT fabrics, across declared
+topology and task shifts, under a specified feedback budget.** Shared plasticity, eligibility,
+learned feedback, LUT training and connection selection each have prior art; the combination is
+the claim, and it needs the output-only baseline and explicit transfer tests to mean anything.
 
 ## Decisions of record
 

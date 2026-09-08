@@ -43,10 +43,14 @@ three choices inside that formula:
 
 The frame also says what is *outside* it: a signal carrying a second-order term, the exact credit
 of a bit flip, is not an adjoint. A learned transport is the adjoint of a network with learned
-Jacobians; e-prop is this formula with $\lambda$ approximated by a broadcast and the local partial
-integrated over time into an eligibility trace; the rule of step 3 is a learned readout in place
-of the product $\lambda \cdot \partial r / \partial \theta$. The code is laid out in the frame's
-order: the seed, the local partials, the adjoints, the readout, then one function per `via`.
+Jacobians; the rule of step 3 is a learned readout in place of the product
+$\lambda \cdot \partial r / \partial \theta$. And the frame is the *spatial* adjoint of one forward
+pass, depth being its only axis. The online axis, a window of cases, an error that arrives later,
+the pool's episodes, is the other side of the same duality: forward sensitivities carried along
+time (RTRL and its approximations, e-prop's eligibility traces), with their own information and
+memory costs. A reverse adjoint over depth does not by itself give an online rule over time; that
+object enters at step 2 and gets its own name there. The code is laid out in the frame's order:
+the seed, the local partials, the adjoints, the readout, then one function per `via`.
 
 ## The maths, in order
 
@@ -113,10 +117,12 @@ along the same wiring, `zeros.at[:, w].add(...)`, which is the transpose of the 
 recursion applies the transposed Jacobian of the forward pass layer by layer from the outputs,
 as EventProp does for a spiking network with time in place of depth. With the sensitivity as the
 carry it is the chain rule, and it reproduces autodiff to float precision on both passes (a test):
-`relay` is what a chip would run, `autodiff` how we check it. With ones as the carry it is the
-exact adjoint of a different network, the same wiring with every gate a sum: value-blind, a fixed
-feedback whose weights are the number of wiring paths from each gate to each output. That is
-feedback alignment shaped by the wiring (`uniform`).
+`relay` is what a chip would run, `autodiff` how we check it. With ones as the carry the
+*transport* is the exact transpose of a different network, the same wiring with every gate a
+sum, so $\lambda$ counts wiring paths from each gate to each output: value-blind, a fixed feedback.
+The signal as a whole is not that network's gradient, since the seed and the address are the
+LUT circuit's own; it is a transpose identity followed by an empirical fact about training. That
+is feedback alignment shaped by the wiring (`uniform`).
 
 **7. The direct adjoint** (`signals.direct`). No layers: $\lambda$ at every hidden gate is the
 seed through a fixed matrix, $\lambda_g = \sum_o B[g, o]\, e_o$, with $B$ random ±1 drawn once
@@ -138,9 +144,14 @@ invisible to any adjoint because a right output has zero residual, and on bits a
 first. It is carried by a second layered adjoint, the **reach**, the same recursion with
 $|c|$ as the carry seeded by ones: the number of live paths from the gate to the outputs, which
 is the number of outputs a flip changes wherever paths do not reconverge (exact in the upper
-layers, an over-count for a few percent of the pairs at the input layer). The signal is the
-relay's plus half the reach in the direction of the flip, $(1 - 2H[a])$: exact for one flip where
-the wiring does not reconverge, not a gradient, and a bits quantity (no soft cell).
+layers, wrong for a few percent of the pairs at the input layer). Where paths reconverge the
+composed credit can err both ways: a line branching into two buffers that meet at an AND has zero
+sensitivity along each path alone, so the credit sees nothing though flipping the line fixes the
+output, and with both paths live it counts the one output twice
+(`probes/2026-09-08-flip-credit-counterexample.py`, the corpus audit's example run against the
+code). The signal is the relay's plus half the reach in the direction of the flip, $(1 - 2H[a])$:
+exact for one flip where the wiring does not reconverge, not a gradient, and a bits quantity (no
+soft cell).
 
 ## Running it on the bits
 
@@ -173,7 +184,7 @@ costs: state per gate beyond its table, reads of its own table per case, and wir
 | `via` | state per gate | local reads per case | wiring for the error |
 |---|---|---|---|
 | `autodiff` | not a fabric signal: the whole graph's activations and a transpose pass | | |
-| `relay` | a counter per entry (the logit's stand-in) | its own table at each flipped input: $k$ reads | a reverse channel per forward wire, carrying a 2-bit message ($\lambda$ times a sensitivity in $\{-1,0,1\}$), summed where a line fans out |
+| `relay` | a counter per entry (the logit's stand-in) | its own table at each flipped input: $k$ reads | a reverse channel per forward wire, carrying $\lambda$ times a sensitivity in $\{-1,0,1\}$: the sensitivity is two bits, $\lambda$ is not (a sum over fan-out and paths), summed again where a line fans out |
 | `uniform` | the same counters | none | a reverse channel per wire, but one message per gate broadcast to all its sources, plus the fan-out sum |
 | `direct` | the same counters, and a fixed ±1 coefficient per output | none | a bus of $n_{out}$ residual bits, no reverse wiring |
 | `reachable` | the same, and one bit per output: reachable or not (the wiring, read once) | none | the same bus |
@@ -182,9 +193,14 @@ costs: state per gate beyond its table, reads of its own table per case, and wir
 
 The relay implies the transpose of the wiring, every forward connection with a way back, but no
 duplicated tables: the sensitivity is computed downstream from the gate's own table and sent as a
-value. On an FPGA that is a second routing network and an adder per line. The bus is the cheapest
-learning channel there is, and it has the shape of a neuromorphic three-factor rule: a global
-error, a local eligibility (the addressed entry), and local state.
+value. On an FPGA that is a second routing network and an adder per line. The bus is the least
+wiring, not universally the cheapest channel: it still needs distribution and timing of
+$n_{out}$ residual bits and a coefficient per gate *and* output. It has the shape of a
+neuromorphic three-factor rule: a global error, a local eligibility (the addressed entry), and
+local state. The table costs the *signal*; the optimiser's state is not in it. Under Adam every
+logit carries two moments, which a fabric would not; the smallest rule of step 2,
+$\Delta = -\eta \cdot$ signal, carries none, and what replaces the floating logit is the workshop's
+question.
 
 ## What the transports do at depth
 
