@@ -219,7 +219,8 @@ carry zero on a random deep tile). Only $\sigma'$ is shared, and it is positive,
 sign. At initialisation the two gradients are nearly orthogonal and the one on the bits is several
 times sparser; they converge as the soft tables saturate. Being piecewise constant, the hard-pass
 gradient changes sign when a table entry crosses one half, and at the soft learning rate a logit
-marches to the threshold, flips, and marches back: descent on the hard pass wants a smaller step.
+marches to the threshold, flips, and marches back: descent on the hard pass wants a narrower band
+of steps than the soft pass (measured under plain descent: `notes/2026-09-08-the-floors-under-plain-descent.md`).
 
 ## The transports, and what they cost
 
@@ -244,7 +245,7 @@ $n_{out}$ residual bits and a coefficient per gate *and* output. It has the shap
 neuromorphic three-factor rule: a global error, a local eligibility (the addressed entry), and
 local state. The table costs the *signal*; the optimiser's state is not in it. Under Adam every
 logit carries two moments, which a fabric would not; the smallest rule of step 2,
-$\Delta = -\eta \cdot$ signal, carries none, and what replaces the floating logit is the workshop's
+$\Delta = -\eta \cdot$ signal, carries none, and what replaces the floating logit is meta-learning's
 question.
 
 ## What the transports do at depth
@@ -304,8 +305,8 @@ train, any fixed feedback on the reachability delivered by wires or by a bus, th
 and the exact relay with σ′ kept; the exact relay without it, the one signal a fabric that
 stores bits could compute with no counter, is the one that does not. The soft pass on the chip,
 a substrate that holds probabilities, keeps the exact signal; that is the question the second
-substrate inherits, and the question step 2 inherits is which of these signals the workshop is
-trained on.
+substrate inherits, and the question step 2 inherits is which of these signals the rule is
+meta-learned on.
 
 ## Where straight-through sits in the ladder
 

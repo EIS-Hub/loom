@@ -54,6 +54,185 @@ at the budget is within 0.02 of its best. A recipe's rate is the geometric centr
 never an edge; its budget twice the first step at which every probe seed reached the target at
 that rate, rounded to the record's grain; then the claims re-run under the recipe seeds.
 
+**Measured.** The sweeps in full, every rate and every seed on both tiles with the plateaus
+refined, are the appendix at the end of this note; the argument reads from their summary, the
+table of the rate each signal wants below.
+
+**The path.** Three things were not what the brief expected. (1) The flat reference had no upper
+edge on the brief's grid: at 3000 it reaches the target in 50 steps, and the edge is at 100000
+on the junta (one seed at 0.750) and at 10000 on addition, so the grid was extended a further two
+decades everywhere. (2) At depth the plain reference's plateau, defined as every probe seed at
+1.000 by 4000 steps, is one grid point at ×1.5 resolution, 3000: its neighbours 2000 and 4500
+leave one seed at 0.980 or 0.988, and at 100 to 1000 two seeds sit at 0.89 to 0.98 for 12000
+steps. The first reading, a deploy gap that the plain update never closes because its push
+vanishes with the residual, was probed and fell for the reference: the soft read is wrong too
+(0.90 to 0.98), the loss sits at 0.007 to 0.027 and the gradient at 0.2 to 2.6 % of its initial
+size, a plateau or shallow minimum of the soft loss that the larger step does not enter. Why the
+larger step avoids it is not measured (a reading: it saturates the tables before the soft
+landscape flattens, 0.41 of the entries unsaturated at 3000 against 0.53 to 0.67 below). The
+reading held for the relay to the entry at 700 on one seed: soft 1.000, bits 0.992, loss 0.0015,
+gradient zero, a deploy gap that nothing closes. (3) Under the recipe seeds the same rate misses:
+at 3000 two tiles sit at 0.988 and 0.992 for 4000 steps while 2000 and 4500 reach by 1000 and
+1250. Over the six tiles tried no single rate takes the plain reference to the target on all of
+them; the relay to the entry at 1500 does, on all six, with its own turbulence on the way (one
+recipe seed at 0.652 at 1000 steps, 1.000 by 1750). So at depth the floor of this repo is no longer
+what it was: the reference comes within two bits of the target on every tile and reaches it on
+most; the signal that reaches it on every tile is the relay without σ′, at a rate of its own.
+
+**The rate each signal wants.** The plateau per (shape, pass, signal), its centre, and the pin.
+
+| shape, task | signal | plateau (rates) | centre | pinned | recipe |
+|---|---|---|---|---|---|
+| flat, both tasks | soft.autodiff.logit, batched | [10, 3000] (junta [3, 30000], addition [10, 3000]) | 173 | 100 | `SOFT_FLOOR`, and `descend`'s default |
+| flat, both tasks | hard.autodiff.logit (straight-through) | [300, 700] (junta [1, 1000], addition [300, 700]) | 458 | 450 | `HARD_FLOOR` |
+| flat, both tasks | soft.relay.entry, batched | [3, 1000] (junta [1, 100000]: above 3000 the bits regime, which the junta allows) | 55 | — | none swaps to it on the flat tile |
+| flat | hard.relay.entry | junta [1, 100000]; addition none (chance at every rate) | — | — | none |
+| flat, both tasks | soft.autodiff.logit, window 1 | [10, 1000] (refined [30, 300] on the junta) | 100 | 100 | `ONLINE_FLOOR` |
+| flat | soft.relay.entry, window 1 | addition [1, 30], junta [1, 100], erratic above | 5–10 | — | none |
+| deep addition | soft.autodiff.logit | the point 3000 on the probe seeds; 2000 and 4500 on the recipe seeds | 3000 | 3000 | `DEEP_FLOOR` |
+| deep addition | soft.relay.entry | the point 1500 (700 to 1000 leave one tile at 0.992 to 0.996 for 12000 steps; 2000 collapses) | 1500 | 1500 | `DEEP_RELAY` |
+| deep addition | soft.uniform.entry | short of the target at every rate; best 0.954 at 300, 0.957 at 10000 | — | — | swapped in under `DEEP_RELAY` |
+| deep addition | soft.direct.entry | short; best 0.79 to 0.80 at 1 to 30, falling with the rate | — | — | — |
+| deep addition | soft.reachable.entry | short; 0.89 to 0.94 at every rate | — | — | — |
+| deep addition | hard.autodiff.logit (straight-through) | short; best 0.939 ± 0.011 at 1000, 0.90 to 0.94 on [700, 2000], chance at ≤ 300 and ≥ 30000 | 1000 | 1000 | `DEEP_HARD_FLOOR` |
+| deep addition | hard.relay.entry | chance at every rate | — | — | swapped in under `DEEP_HARD_FLOOR` |
+| deep addition | hard.uniform / direct / reachable / flip .entry | rate-free above 1000 (every digit identical from 1000 to 100000), 0.86 to 0.96 / 0.62 to 0.72 / 0.88 to 0.99 / 0.85 to 0.91 | — | 1000 | swapped in under `DEEP_HARD_FLOOR` |
+| deep junta | soft, every via | reference [10, 10000]; relay [3, 100000]; uniform and reachable at every rate; direct 2 of 3 seeds at most rates | — | — | — |
+| deep junta | hard, every via | straight-through [150, 1500] with a hole at 200 (one seed at 0.488); uniform and reachable at every rate; direct [3, 100]; flip 0.97 to 1.000, all seeds at 300; the exact relay 2 of 3 seeds at best, seed 2 never | — | — | — |
+
+Do the best rates differ across signals by more than a decade? On the soft pass at depth, no:
+the reference at 3000 and the relay to the entry at 1500, a factor of two, but their plateaus
+are points that do not overlap, so the swap a claim makes has to change the recipe, not only the
+signal (`DEEP_RELAY`). On the flat tile the relay to the entry sits a decade below the reference
+(centre 55 against 173) and both plateaus are wide enough to share a rate. On the bits, the
+entry cells are rate-free above a threshold and any rate above it serves them all, so one recipe
+(`DEEP_HARD_FLOOR`, whose own signal, straight-through, wants exactly the band around 1000)
+serves every bits claim. Why the bits cells to the entry are rate-free: a bits signal reads the
+bits, not the logits' size, so with z' = z / lr the update is z' ← z' − s from an initial
+z₀ / lr that vanishes as lr grows; every trajectory above the threshold is the one started from
+zero at unit rate. Straight-through keeps σ′(z) and is not: its band is narrow.
+
+**What held, what moved.** Every qualitative statement of the four earlier notes and of
+`docs/signals.md` §"What the transports do at depth", with the numbers behind it.
+
+*Of the step-0 note.* One tile reaches 2-juntas by direct descent, soft and hard agreeing once
+trained: **held** (`SOFT_FLOOR` at 100, every probe seed at 1.000 by 100 steps, the claim with
+soft accuracy 1.000 too). Two-bit addition with carry: **held** (by 200 steps at 100). Online,
+one case per step: **held** (`ONLINE_FLOOR` at 100, by 100 steps on the junta and 250 on
+addition, against Adam's 3000-step budget).
+
+*Of the straight-through note.* The two gradients nearly orthogonal at initialisation, the bits'
+sparser: **unchanged**, a statement about the signals, not the optimiser, not re-measured. On the
+bits at the soft rate two seeds miss at 500 steps, one at 2000, and a fifth of the rate reaches:
+**moved**; the plain junta reaches at every rate from 1 to 1000 and fails above (0.66 to 0.88 at
+3000 and beyond), and 2-bit addition reaches only in [300, 700], short below (means 0.48 to 0.69 from 1 to 200,
+single seeds at 1.000 at 1 and 200) and above (0.993 ± 0.010 at 1000). "Descent on the hard pass wants a smaller
+step" is therefore a narrower band, not a smaller step: its top (1000) lies below the
+reference's (3000 to 30000), its bottom on addition (300) above the reference's (10). The
+chattering read as Adam's normalised steps: **moved**; the plain update chatters too, the first
+step at 1.000 on the bits being noisy (the junta at 150 steps at rate 10 and 450 at rate 30; on
+addition at 450 one seed hovers at 0.979 until 1450), so chattering is the piecewise-constant
+gradient's, not the optimiser's. The deploy gap, zero on the bits at every step, opening and
+closing on the soft pass: **held** (claims pass, the first by construction).
+
+*Of the relay-and-alignment note.* The relay is autodiff: **unchanged** (a theorem, tested). The
+deep shape as the floor, the reference at 1.000 on every seed within 1000 steps: **moved**, the
+path above; under the plain update no single rate reaches on all six tiles, and the plateau
+below is a soft-pass solution short of the target. The relay reaches with or without σ′ because
+Adam does not see a positive factor: **moved**; with σ′ it is the reference, above; without it
+the relay reaches on all six tiles at 1500, on none at 700 to 1000 (one tile at 0.992 to 0.996
+for 12000 steps) and collapses to 0.65 to 0.72 at 2000: the factor now sets the band, and the
+two bands do not overlap. The blind split stalls short on the soft pass: **held on addition**
+(uniform 0.87 to 0.96 at every rate, single seeds at 1.000 at five rates, never every seed; under
+`DEEP_RELAY` the claim passes on the recipe seeds) and, as the audit already scoped on the bits,
+**not on the junta**, where the soft uniform split reaches at every rate by 250 to 500 steps. On
+the bits the exact relay to the logit or to the entry does not leave chance at any rate, budget
+or optimiser: **moved for the logit, held for the entry**; straight-through at 1000 reaches
+0.939 ± 0.011 (0.926 · 0.953 · 0.938 at 4000 steps; 0.867 · 0.953 · 0.934 at 2000), 0.90 to
+0.94 on [700, 2000], chance below 300 and above 30000; the relay to the entry is at 0.46 to 0.51
+at every rate on addition, and the only difference between the two cells is σ′, which the plain
+update keeps as a weight (the reading, that σ′ gives a saturated entry inertia, a "stay" the bare
+vote lacks, is not measured). The blind split trains to 0.84 to 0.98 on the bits and never to
+1.000: **held**, 0.86 to 0.96, with one run of thirty-three at 1.000 (rate 10, seed 2, from 1000
+steps on). Dead paths, thrash, who learns, alignment, the votes: **not re-measured**; they are
+statements about the signals under Adam's flips, and the ones that involve the optimiser (flips
+per step) are owed a plain-update run. On the junta at depth the blind split reaches on every
+run and the relay does not (0.47 to 0.61): **held for the split** (every rate, by 250 to 500),
+**moved for the relay**, which now reaches on two seeds of three at some rates (seed 0 above
+1000, seed 1 at 30) and never on the third (0.40 to 0.56).
+
+*Of the direct-feedback note.* The flip credit trains the bits and stops exactly: **held**
+(0.85 to 0.91, identical at 1000, 2000 and 4000 steps at every rate from 10 up, 0.910 ± 0.023
+from 3000 up; on the junta 0.97 to 1.000, every seed at 1.000 at 300; the fixed-point claim
+passes). The random bus trains worst: **held** (bits 0.62 to 0.72, soft 0.63 to 0.80, best at the
+lowest rates and falling with the rate; the ordering claim passes). Masked to reachable outputs
+the bus trains like the wiring-shaped split: **held** (bits 0.88 to 0.99, 0.986 ± 0.020 at 100
+with two seeds at 1.000, 0.947 ± 0.039 rate-free above 1000; soft 0.89 to 0.94; the claim
+passes). Alignment's own quantity and the depth boundary (one hidden layer): **not re-measured**.
+The per-gate signal does not leave chance: **held** (the claim passes). "Three signals train at
+depth and the one autodiff would suggest is the one that does not": **moved**, four train, any
+fixed feedback on the reachability, the flip credit, and the exact relay with σ′ kept; the exact
+relay without it is the one that does not.
+
+*Of `docs/signals.md` §depth.* Reworded where the above moved: the relay to the entry at its own
+rate; straight-through trains at depth under the plain update; the flip credit rate-free; four
+signals. The section's ranges from the Adam notes became words with a pointer here.
+
+*New, not in any earlier note.* The bits cells to the entry are rate-free above a threshold
+(above). The soft relay to the entry at a high enough rate saturates every table in the first
+steps and is thereafter the bits' relay: at chance on addition from 3000 up on the flat tile and
+2000 up on the deep one, at the target on the junta at every rate, exactly where
+`hard.relay.entry` is. And the flat tile's straight-through reaches 2-bit addition, which no
+earlier claim asserted, on every seed in [300, 700]: `HARD_FLOOR` now holds on both flat tasks.
+
+**The online row.** With window 1 the reference's plateau on the flat tile, [10, 1000], is nearly
+the batched one, [10, 3000]: the seed divides by the window's size and the address sum grows with
+the cases, so the per-entry signal has the same size online and batched, and the rate carries
+over. At 100 every probe seed is at 1.000 by 100 steps on the junta and 250 on addition, which
+`ONLINE_FLOOR` pins at 500; under Adam the same claim needed 3000. The soft relay to the entry
+online wants a decade less ([1, 30] on addition, [1, 100] on the junta) and is erratic above,
+consistent with its σ′-free push overshooting one case at a time. The deep shape was not run
+online: that row belongs to the workshop, where the window is an axis of its own.
+
+**Claims left behind.** Recipes, before → after:
+
+| recipe | before (Adam) | after (plain) | from |
+|---|---|---|---|
+| `SOFT_FLOOR` | 0.1, 500 steps | 100, 400 steps | the flat reference's plateau [10, 3000], 200 steps ×2 |
+| `HARD_FLOOR` | 0.02, 2000 | 450, 3000 | straight-through's band on addition [300, 700] inside the junta's; addition's slowest seed at 1450, ×2 |
+| `ONLINE_FLOOR` | 0.05, 3000 | 100, 500 | the online reference's plateau [10, 1000], 250 steps ×2 |
+| `DEEP_FLOOR` | 0.1, 4000 | 3000, 4000 | the point 3000 on the probe seeds; the full budget, since no rate reaches on every tile and the claim is about the landscape |
+| `DEEP_HARD_FLOOR` | 0.02, 2000 | 1000, 2000 | straight-through's band at depth; the junta's 750 ×2, rounded to the tables' grain, where every bits cell has come to rest or plateaued |
+| `DEEP_RELAY` | — | 1500, 4000 | new: the relay to the entry's own point; 2000 steps ×2 |
+
+Claims, by file. `test_2026_09_03_one_tile_computes.py`: all three **unchanged** apart from the
+recipes they name. `test_2026_09_07_straight_through.py`: all four (five with the matrix cell)
+**unchanged**. `test_2026_09_07_transports.py`: the uniform split losing the sign after one hop
+**unchanged** (no training in it); the exact relay dead on the bits where the blind split is not
+**unchanged**; descent on the relay reaching where the blind split stalls **re-stated** under
+`DEEP_RELAY` (under `DEEP_FLOOR`'s rate the relay is at chance, the second new claim);
+`test_addition_under_the_deep_floor` **superseded**: it asserted 1.000 on every seed (it held
+under Adam 0.1 for 4000 steps) and under `DEEP_FLOOR` the recipe seeds give 1.000 · 0.992 · 0.988,
+with no rate of 2000, 3000 or 4500 reaching on all six tiles tried; it is removed from the file
+and re-earned as the first claim of `claims/test_2026_09_08_the_floors_under_plain_descent.py`:
+the plain reference comes within two bits of the target on every seed and the relay to the entry
+under `DEEP_RELAY` reaches it. `test_2026_09_07_direct_feedback_and_the_flip_credit.py`: all four
+**unchanged**. New, in the new file: the same signal short under the reference's rate and at the
+target under its own; straight-through trains the bits at depth where the relay to the entry
+does not; two-bit addition under the hard floor. Nineteen claims, all green under the recipe
+seeds; 22 s at `-n 8` on this CPU (the `-n 2` time is in the chunk's report).
+
+**What would change it.** More tiles at depth: six is few for a plateau that is a point, and a
+finer grid than ×1.5, or a rate schedule, might find a band the reference shares across tiles;
+until then the deep floor is the relay to the entry. Why the large step avoids the soft plateau,
+which was read, not measured. The σ′-as-inertia reading of straight-through on the bits (flips
+per step against the relay to the entry at their own rates). The mechanism probes of the two
+2026-09-07 notes re-run under the plain update, alignment and votes included. The deep shape
+online. And the workshop of step 2, whose learned η is exactly the pin this note sets by hand,
+which is what makes the plain update the floor it meta-learns against.
+
+## Appendix: the sweeps in full
+
 **Measured, the flat tile.** Per cell, every row is a rate, every seed cell is the accuracy at
 the two budgets, and rows whose every digit is identical are one row with a rate range.
 
@@ -632,175 +811,3 @@ deep addition, probe seeds, 4000 steps; the gradient's norm against its norm at 
 | soft.relay.entry | 700 | 0 · 1 · 2 | 1.000 · 1.000 · 1.000 | 1.000 · 1.000 · 0.992 | 0.0000 · 0.0000 · 0.0015 | 0.46 · 0.44 · 0.53 | 0.0000 · 0.0000 · 0.0000 |
 | soft.relay.entry | 1500 | 0 · 1 · 2 | 1.000 · 1.000 · 1.000 | 1.000 · 1.000 · 1.000 | 0.0000 · 0.0000 · 0.0000 | 0.29 · 0.26 · 0.28 | 0.0000 · 0.0000 · 0.0000 |
 
-**The path.** Three things were not what the brief expected. (1) The flat reference had no upper
-edge on the brief's grid: at 3000 it reaches the target in 50 steps, and the edge is at 100000
-on the junta (one seed at 0.750) and at 10000 on addition, so the grid was extended a further two
-decades everywhere. (2) At depth the plain reference's plateau, defined as every probe seed at
-1.000 by 4000 steps, is one grid point at ×1.5 resolution, 3000: its neighbours 2000 and 4500
-leave one seed at 0.980 or 0.988, and at 100 to 1000 two seeds sit at 0.89 to 0.98 for 12000
-steps. The first reading, a deploy gap that the plain update never closes because its push
-vanishes with the residual, was probed and fell for the reference: the soft read is wrong too
-(0.90 to 0.98), the loss sits at 0.007 to 0.027 and the gradient at 0.2 to 2.6 % of its initial
-size, a plateau or shallow minimum of the soft loss that the larger step does not enter. Why the
-larger step avoids it is not measured (a reading: it saturates the tables before the soft
-landscape flattens, 0.41 of the entries unsaturated at 3000 against 0.53 to 0.67 below). The
-reading held for the relay to the entry at 700 on one seed: soft 1.000, bits 0.992, loss 0.0015,
-gradient zero, a deploy gap that nothing closes. (3) Under the recipe seeds the same rate misses:
-at 3000 two tiles sit at 0.988 and 0.992 for 4000 steps while 2000 and 4500 reach by 1000 and
-1250. Over the six tiles tried no single rate takes the plain reference to the target on all of
-them; the relay to the entry at 1500 does, on all six, with its own turbulence on the way (one
-recipe seed at 0.652 at 1000 steps, 1.000 by 1750). So at depth the floor of this repo is no longer
-what it was: the reference comes within two bits of the target on every tile and reaches it on
-most; the signal that reaches it on every tile is the relay without σ′, at a rate of its own.
-
-**The rate each signal wants.** The plateau per (shape, pass, signal), its centre, and the pin.
-
-| shape, task | signal | plateau (rates) | centre | pinned | recipe |
-|---|---|---|---|---|---|
-| flat, both tasks | soft.autodiff.logit, batched | [10, 3000] (junta [3, 30000], addition [10, 3000]) | 173 | 100 | `SOFT_FLOOR`, and `descend`'s default |
-| flat, both tasks | hard.autodiff.logit (straight-through) | [300, 700] (junta [1, 1000], addition [300, 700]) | 458 | 450 | `HARD_FLOOR` |
-| flat, both tasks | soft.relay.entry, batched | [3, 1000] (junta [1, 100000]: above 3000 the bits regime, which the junta allows) | 55 | — | none swaps to it on the flat tile |
-| flat | hard.relay.entry | junta [1, 100000]; addition none (chance at every rate) | — | — | none |
-| flat, both tasks | soft.autodiff.logit, window 1 | [10, 1000] (refined [30, 300] on the junta) | 100 | 100 | `ONLINE_FLOOR` |
-| flat | soft.relay.entry, window 1 | addition [1, 30], junta [1, 100], erratic above | 5–10 | — | none |
-| deep addition | soft.autodiff.logit | the point 3000 on the probe seeds; 2000 and 4500 on the recipe seeds | 3000 | 3000 | `DEEP_FLOOR` |
-| deep addition | soft.relay.entry | the point 1500 (700 to 1000 leave one tile at 0.992 to 0.996 for 12000 steps; 2000 collapses) | 1500 | 1500 | `DEEP_RELAY` |
-| deep addition | soft.uniform.entry | short of the target at every rate; best 0.954 at 300, 0.957 at 10000 | — | — | swapped in under `DEEP_RELAY` |
-| deep addition | soft.direct.entry | short; best 0.79 to 0.80 at 1 to 30, falling with the rate | — | — | — |
-| deep addition | soft.reachable.entry | short; 0.89 to 0.94 at every rate | — | — | — |
-| deep addition | hard.autodiff.logit (straight-through) | short; best 0.939 ± 0.011 at 1000, 0.90 to 0.94 on [700, 2000], chance at ≤ 300 and ≥ 30000 | 1000 | 1000 | `DEEP_HARD_FLOOR` |
-| deep addition | hard.relay.entry | chance at every rate | — | — | swapped in under `DEEP_HARD_FLOOR` |
-| deep addition | hard.uniform / direct / reachable / flip .entry | rate-free above 1000 (every digit identical from 1000 to 100000), 0.86 to 0.96 / 0.62 to 0.72 / 0.88 to 0.99 / 0.85 to 0.91 | — | 1000 | swapped in under `DEEP_HARD_FLOOR` |
-| deep junta | soft, every via | reference [10, 10000]; relay [3, 100000]; uniform and reachable at every rate; direct 2 of 3 seeds at most rates | — | — | — |
-| deep junta | hard, every via | straight-through [150, 1500] with a hole at 200 (one seed at 0.488); uniform and reachable at every rate; direct [3, 100]; flip 0.97 to 1.000, all seeds at 300; the exact relay 2 of 3 seeds at best, seed 2 never | — | — | — |
-
-Do the best rates differ across signals by more than a decade? On the soft pass at depth, no:
-the reference at 3000 and the relay to the entry at 1500, a factor of two, but their plateaus
-are points that do not overlap, so the swap a claim makes has to change the recipe, not only the
-signal (`DEEP_RELAY`). On the flat tile the relay to the entry sits a decade below the reference
-(centre 55 against 173) and both plateaus are wide enough to share a rate. On the bits, the
-entry cells are rate-free above a threshold and any rate above it serves them all, so one recipe
-(`DEEP_HARD_FLOOR`, whose own signal, straight-through, wants exactly the band around 1000)
-serves every bits claim. Why the bits cells to the entry are rate-free: a bits signal reads the
-bits, not the logits' size, so with z' = z / lr the update is z' ← z' − s from an initial
-z₀ / lr that vanishes as lr grows; every trajectory above the threshold is the one started from
-zero at unit rate. Straight-through keeps σ′(z) and is not: its band is narrow.
-
-**What held, what moved.** Every qualitative statement of the four earlier notes and of
-`docs/signals.md` §"What the transports do at depth", with the numbers behind it.
-
-*Of the step-0 note.* One tile reaches 2-juntas by direct descent, soft and hard agreeing once
-trained: **held** (`SOFT_FLOOR` at 100, every probe seed at 1.000 by 100 steps, the claim with
-soft accuracy 1.000 too). Two-bit addition with carry: **held** (by 200 steps at 100). Online,
-one case per step: **held** (`ONLINE_FLOOR` at 100, by 100 steps on the junta and 250 on
-addition, against Adam's 3000-step budget).
-
-*Of the straight-through note.* The two gradients nearly orthogonal at initialisation, the bits'
-sparser: **unchanged**, a statement about the signals, not the optimiser, not re-measured. On the
-bits at the soft rate two seeds miss at 500 steps, one at 2000, and a fifth of the rate reaches:
-**moved**; the plain junta reaches at every rate from 1 to 1000 and fails above (0.66 to 0.88 at
-3000 and beyond), and 2-bit addition reaches only in [300, 700], short below (means 0.48 to 0.69 from 1 to 200,
-single seeds at 1.000 at 1 and 200) and above (0.993 ± 0.010 at 1000). "Descent on the hard pass wants a smaller
-step" is therefore a narrower band, not a smaller step: its top (1000) lies below the
-reference's (3000 to 30000), its bottom on addition (300) above the reference's (10). The
-chattering read as Adam's normalised steps: **moved**; the plain update chatters too, the first
-step at 1.000 on the bits being noisy (the junta at 150 steps at rate 10 and 450 at rate 30; on
-addition at 450 one seed hovers at 0.979 until 1450), so chattering is the piecewise-constant
-gradient's, not the optimiser's. The deploy gap, zero on the bits at every step, opening and
-closing on the soft pass: **held** (claims pass, the first by construction).
-
-*Of the relay-and-alignment note.* The relay is autodiff: **unchanged** (a theorem, tested). The
-deep shape as the floor, the reference at 1.000 on every seed within 1000 steps: **moved**, the
-path above; under the plain update no single rate reaches on all six tiles, and the plateau
-below is a soft-pass solution short of the target. The relay reaches with or without σ′ because
-Adam does not see a positive factor: **moved**; with σ′ it is the reference, above; without it
-the relay reaches on all six tiles at 1500, on none at 700 to 1000 (one tile at 0.992 to 0.996
-for 12000 steps) and collapses to 0.65 to 0.72 at 2000: the factor now sets the band, and the
-two bands do not overlap. The blind split stalls short on the soft pass: **held on addition**
-(uniform 0.87 to 0.96 at every rate, single seeds at 1.000 at five rates, never every seed; under
-`DEEP_RELAY` the claim passes on the recipe seeds) and, as the audit already scoped on the bits,
-**not on the junta**, where the soft uniform split reaches at every rate by 250 to 500 steps. On
-the bits the exact relay to the logit or to the entry does not leave chance at any rate, budget
-or optimiser: **moved for the logit, held for the entry**; straight-through at 1000 reaches
-0.939 ± 0.011 (0.926 · 0.953 · 0.938 at 4000 steps; 0.867 · 0.953 · 0.934 at 2000), 0.90 to
-0.94 on [700, 2000], chance below 300 and above 30000; the relay to the entry is at 0.46 to 0.51
-at every rate on addition, and the only difference between the two cells is σ′, which the plain
-update keeps as a weight (the reading, that σ′ gives a saturated entry inertia, a "stay" the bare
-vote lacks, is not measured). The blind split trains to 0.84 to 0.98 on the bits and never to
-1.000: **held**, 0.86 to 0.96, with one run of thirty-three at 1.000 (rate 10, seed 2, from 1000
-steps on). Dead paths, thrash, who learns, alignment, the votes: **not re-measured**; they are
-statements about the signals under Adam's flips, and the ones that involve the optimiser (flips
-per step) are owed a plain-update run. On the junta at depth the blind split reaches on every
-run and the relay does not (0.47 to 0.61): **held for the split** (every rate, by 250 to 500),
-**moved for the relay**, which now reaches on two seeds of three at some rates (seed 0 above
-1000, seed 1 at 30) and never on the third (0.40 to 0.56).
-
-*Of the direct-feedback note.* The flip credit trains the bits and stops exactly: **held**
-(0.85 to 0.91, identical at 1000, 2000 and 4000 steps at every rate from 10 up, 0.910 ± 0.023
-from 3000 up; on the junta 0.97 to 1.000, every seed at 1.000 at 300; the fixed-point claim
-passes). The random bus trains worst: **held** (bits 0.62 to 0.72, soft 0.63 to 0.80, best at the
-lowest rates and falling with the rate; the ordering claim passes). Masked to reachable outputs
-the bus trains like the wiring-shaped split: **held** (bits 0.88 to 0.99, 0.986 ± 0.020 at 100
-with two seeds at 1.000, 0.947 ± 0.039 rate-free above 1000; soft 0.89 to 0.94; the claim
-passes). Alignment's own quantity and the depth boundary (one hidden layer): **not re-measured**.
-The per-gate signal does not leave chance: **held** (the claim passes). "Three signals train at
-depth and the one autodiff would suggest is the one that does not": **moved**, four train, any
-fixed feedback on the reachability, the flip credit, and the exact relay with σ′ kept; the exact
-relay without it is the one that does not.
-
-*Of `docs/signals.md` §depth.* Reworded where the above moved: the relay to the entry at its own
-rate; straight-through trains at depth under the plain update; the flip credit rate-free; four
-signals. The section's ranges from the Adam notes became words with a pointer here.
-
-*New, not in any earlier note.* The bits cells to the entry are rate-free above a threshold
-(above). The soft relay to the entry at a high enough rate saturates every table in the first
-steps and is thereafter the bits' relay: at chance on addition from 3000 up on the flat tile and
-2000 up on the deep one, at the target on the junta at every rate, exactly where
-`hard.relay.entry` is. And the flat tile's straight-through reaches 2-bit addition, which no
-earlier claim asserted, on every seed in [300, 700]: `HARD_FLOOR` now holds on both flat tasks.
-
-**The online row.** With window 1 the reference's plateau on the flat tile, [10, 1000], is nearly
-the batched one, [10, 3000]: the seed divides by the window's size and the address sum grows with
-the cases, so the per-entry signal has the same size online and batched, and the rate carries
-over. At 100 every probe seed is at 1.000 by 100 steps on the junta and 250 on addition, which
-`ONLINE_FLOOR` pins at 500; under Adam the same claim needed 3000. The soft relay to the entry
-online wants a decade less ([1, 30] on addition, [1, 100] on the junta) and is erratic above,
-consistent with its σ′-free push overshooting one case at a time. The deep shape was not run
-online: that row belongs to the workshop, where the window is an axis of its own.
-
-**Claims left behind.** Recipes, before → after:
-
-| recipe | before (Adam) | after (plain) | from |
-|---|---|---|---|
-| `SOFT_FLOOR` | 0.1, 500 steps | 100, 400 steps | the flat reference's plateau [10, 3000], 200 steps ×2 |
-| `HARD_FLOOR` | 0.02, 2000 | 450, 3000 | straight-through's band on addition [300, 700] inside the junta's; addition's slowest seed at 1450, ×2 |
-| `ONLINE_FLOOR` | 0.05, 3000 | 100, 500 | the online reference's plateau [10, 1000], 250 steps ×2 |
-| `DEEP_FLOOR` | 0.1, 4000 | 3000, 4000 | the point 3000 on the probe seeds; the full budget, since no rate reaches on every tile and the claim is about the landscape |
-| `DEEP_HARD_FLOOR` | 0.02, 2000 | 1000, 2000 | straight-through's band at depth; the junta's 750 ×2, rounded to the tables' grain, where every bits cell has come to rest or plateaued |
-| `DEEP_RELAY` | — | 1500, 4000 | new: the relay to the entry's own point; 2000 steps ×2 |
-
-Claims, by file. `test_2026_09_03_one_tile_computes.py`: all three **unchanged** apart from the
-recipes they name. `test_2026_09_07_straight_through.py`: all four (five with the matrix cell)
-**unchanged**. `test_2026_09_07_transports.py`: the uniform split losing the sign after one hop
-**unchanged** (no training in it); the exact relay dead on the bits where the blind split is not
-**unchanged**; descent on the relay reaching where the blind split stalls **re-stated** under
-`DEEP_RELAY` (under `DEEP_FLOOR`'s rate the relay is at chance, the second new claim);
-`test_addition_under_the_deep_floor` **superseded**: it asserted 1.000 on every seed (it held
-under Adam 0.1 for 4000 steps) and under `DEEP_FLOOR` the recipe seeds give 1.000 · 0.992 · 0.988,
-with no rate of 2000, 3000 or 4500 reaching on all six tiles tried; it is removed from the file
-and re-earned as the first claim of `claims/test_2026_09_08_the_floors_under_plain_descent.py`:
-the plain reference comes within two bits of the target on every seed and the relay to the entry
-under `DEEP_RELAY` reaches it. `test_2026_09_07_direct_feedback_and_the_flip_credit.py`: all four
-**unchanged**. New, in the new file: the same signal short under the reference's rate and at the
-target under its own; straight-through trains the bits at depth where the relay to the entry
-does not; two-bit addition under the hard floor. Nineteen claims, all green under the recipe
-seeds; 22 s at `-n 8` on this CPU (the `-n 2` time is in the chunk's report).
-
-**What would change it.** More tiles at depth: six is few for a plateau that is a point, and a
-finer grid than ×1.5, or a rate schedule, might find a band the reference shares across tiles;
-until then the deep floor is the relay to the entry. Why the large step avoids the soft plateau,
-which was read, not measured. The σ′-as-inertia reading of straight-through on the bits (flips
-per step against the relay to the entry at their own rates). The mechanism probes of the two
-2026-09-07 notes re-run under the plain update, alignment and votes included. The deep shape
-online. And the workshop of step 2, whose learned η is exactly the pin this note sets by hand,
-which is what makes the plain update the floor it meta-learns against.

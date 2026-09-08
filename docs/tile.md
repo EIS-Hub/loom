@@ -1,8 +1,8 @@
 # The tile
 
 A tile is the smallest thing that computes: a layered circuit of look-up tables over a fixed
-wiring. It is data plus one function, and every later piece of loom (signals, the rule, the
-workshop) is written against exactly that.
+wiring. It is data plus one function, and every later piece of loom (signals, the rule,
+meta-learning) is written against exactly that.
 
 ## The data
 
