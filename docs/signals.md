@@ -12,14 +12,14 @@ XOR gate in [`signals-worked.md`](signals-worked.md).
 |---|---|---|---|
 | `on` | `soft`, `hard` | the pass the derivatives are taken on: the soft forward, or the deployed bits | where the system is linearised (below) |
 | `via` | `autodiff`, `relay`, `uniform`, `direct`, `reachable`, `flip` | how the error at the outputs reaches each gate | whose transposed Jacobian carries the error: the circuit's own (by autodiff, or locally by the relay); the same wiring with every gate a sum (`uniform`, feedback alignment shaped by the wiring); a fixed random ±1 bus from the outputs (`direct`, direct feedback alignment), or that bus restricted to the outputs a gate can reach (`reachable`); outside the frame, the exact credit of one bit flip (`flip`, on the bits only) |
-| `to` | `logit`, `entry` | which parameter the local partial stops at: the logit $z[a]$, or the stored entry $T[a]$ one step earlier, which leaves out σ′ | both are per entry; a per-gate signal would be the adjoint variable itself, which nothing consumes yet |
+| `to` | `logit`, `entry`, `gate` | where the local partial stops: the logit $z[a]$; the stored entry $T[a]$ one step earlier, which leaves out σ′; or the gate's output, before the address, every entry receiving the gate's error | `logit` and `entry` are per entry; `gate` is the adjoint variable itself, broadcast: the per-gate signal a wire or a bus actually carries, exposed as such by `signals.errors` |
 
 `REFERENCE = Signal("soft", "autodiff", "logit")` is the true gradient of the loss on the soft
 pass: the idealised signal every other one is scored against. `Signal("hard")` is the same
 autodiff run on the bits, the signal usually called straight-through. Naming products would
 explode; naming coordinates keeps the table small and makes every combination a cell the matrix
-can visit: `signals.CELLS` lists the twenty the code supports (autodiff cannot take the partial
-to the entry; the flip credit is a bits quantity). A label such as `hard.relay.entry` is the
+can visit: `signals.CELLS` lists the twenty-eight the code supports (autodiff cannot take the
+partial to the entry; the flip credit is a bits quantity, per entry). A label such as `hard.relay.entry` is the
 coordinates joined, a display name and a test id; a gate asserts no code branches on one.
 
 **Linearised** means that every derivative below is taken at a state. On the soft pass that state
@@ -148,7 +148,14 @@ found to be the whole difference between the bus and the wiring-shaped split.
 
 **7. The readout** (`signals.readout`), item 4's sum, closes the frame: a signal is a choice of
 adjoint, then $s[a] = \sum_b e_{g,b}\, P_b(a \mid u_b)$, times $\sigma'(z[a])$ when `to="logit"`.
-In code, `compute` is exactly that: the seed, the adjoint `via` chooses, the readout.
+In code, `compute` is exactly that: the seed, the adjoint `via` chooses, the readout. The adjoint
+variables before the readout, $e_{g,b}$, one number per gate and case, are the **per-gate signal**:
+what a wire or a bus carries, the best a gate can know before its own address and slope turn it
+into a per-entry move; `signals.errors` returns them for any `via` inside the frame, and
+`to="gate"` is that signal broadcast to every entry, address-blind. Descent on it fails, as a
+table whose entries all move together can only learn a bias (`probes/2026-09-08-per-gate-descent.py`);
+its use is downstream: a rule that reads it with its own inputs must reconstruct the address
+(step 3), and its correlation with each input line across cases is the router of step 6.
 
 **8. Outside the frame: the flip credit** (`flip`). On the bits an entry does not move, it
 flips, and the loss change of a flip has two terms per output it reaches, $\Delta_o \in \{-1,0,1\}$:

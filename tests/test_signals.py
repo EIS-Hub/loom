@@ -99,6 +99,18 @@ def test_reachability_counts_wiring_paths_and_masks_the_bus():
     assert all(jnp.all(jnp.isfinite(a)) for a in masked)
 
 
+def test_the_errors_are_the_per_gate_signal_and_to_gate_broadcasts_them():
+    t, x, y = setup(10, "deep")
+    sig = Signal("hard", "uniform", "gate")
+    lams = signals.errors(sig, t, x, y)
+    assert [a.shape for a in lams] == [(x.shape[0], lg.shape[0]) for lg in t.logits]
+    coarse = signals.compute(sig, t, x, y)
+    for lam, c in zip(lams, coarse, strict=True):
+        assert jnp.allclose(c, jnp.sum(lam, 0)[:, None])  # every entry of a gate gets its error
+    with pytest.raises(ValueError):
+        signals.errors(Signal("hard", "flip"), t, x, y)
+
+
 def test_every_via_inside_the_frame_has_an_adjoint():
     inside = {s.via for s in signals.CELLS} - {"autodiff", "flip"}  # the check, and the exception
     assert set(signals.ADJOINTS) == inside

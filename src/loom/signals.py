@@ -27,7 +27,7 @@ from loom.tile import Read, Tile, activations, forward, read, run, tables
 
 Pass = Literal["soft", "hard"]
 Via = Literal["autodiff", "relay", "uniform", "direct", "reachable", "flip"]
-To = Literal["logit", "entry"]
+To = Literal["logit", "entry", "gate"]
 Carry = Callable[[jax.Array, jax.Array], jax.Array]  # (luts, inputs) → [B, arity, gates]: per input
 Adjoint = Callable[
     [Tile, list[jax.Array], Pass, jax.Array], list[jax.Array]
@@ -37,7 +37,9 @@ Adjoint = Callable[
 class Signal(NamedTuple):
     on: Pass = "soft"  # the pass the circuit is linearised on: the soft forward, or the bits
     via: Via = "autodiff"  # whose transposed Jacobian carries the adjoint variable back
-    to: To = "logit"  # the parameter the local partial is taken to: the logit, or the stored entry
+    to: To = (
+        "logit"  # where the local partial stops: the logit, the stored entry, or the gate's output
+    )
 
     @property
     def label(self) -> str:
@@ -53,10 +55,10 @@ CELLS = tuple(
     for on, via, to in product(
         ("soft", "hard"),
         ("autodiff", "relay", "uniform", "direct", "reachable", "flip"),
-        ("logit", "entry"),
+        ("logit", "entry", "gate"),
     )
     if (via != "autodiff" or to == "logit")  # autodiff cannot take the partial to the entry
-    and (via != "flip" or on == "hard")  # the cost of a flip is a bits quantity
+    and (via != "flip" or (on == "hard" and to != "gate"))  # a bits quantity, per entry
 )  # every combination the code supports: what the combinatorial test visits
 
 
@@ -180,10 +182,14 @@ def readout(lams: list[jax.Array], tile: Tile, acts: list[jax.Array], on: Pass, 
 
     For every entry a of every gate, Σ_b λ[b, g] P_b(a | u_b), the adjoint variable against the
     address distribution summed over cases (the partial to the entry), times σ'(z[a]) when the
-    partial is taken to the logit.
+    partial is taken to the logit. ``to="gate"`` stops before the address: every entry of the gate
+    receives the gate's summed error, address-blind, the coarsest signal in the logits' shape.
     """
     out = []
     for lam, lg, w, u in zip(lams, tile.logits, tile.wires, acts[:-1], strict=True):
+        if to == "gate":
+            out.append(jnp.broadcast_to(jnp.sum(lam, axis=0)[:, None], lg.shape))
+            continue
         per_entry = jnp.sum(lam[:, :, None] * address(u[:, w]), axis=0)  # [gates, 2**arity]
         out.append(per_entry * slope(lg) if to == "logit" else per_entry)
     return tuple(out)
@@ -271,6 +277,18 @@ def flip_credit(tile: Tile, x: jax.Array, y: jax.Array, on: Pass, to: To):
         c + 0.5 * k * (1.0 - 2.0 * tables(lg, "hard"))
         for c, k, lg in zip(credit, cost, tile.logits, strict=True)
     )
+
+
+def errors(signal: Signal, tile: Tile, x: jax.Array, y: jax.Array) -> list[jax.Array]:
+    """The adjoint variables themselves: the error at every gate's output, [B, gates] per layer,
+    for any ``via`` inside the frame. The per-gate signal, what a wire or a bus actually carries;
+    the best a gate can know before its own address and slope turn it into a per-entry move. A
+    rule that reads this and its own inputs must reconstruct the address itself (step 3); the
+    correlation of it with each input line across cases is the router of step 6."""
+    if signal.via not in ADJOINTS:
+        raise ValueError(f"{signal.via!r} has no adjoint variables to expose")
+    acts = activations(tile, x, signal.on)
+    return ADJOINTS[signal.via](tile, acts, signal.on, seed(acts, y))
 
 
 def compute(signal: Signal, tile: Tile, x: jax.Array, y: jax.Array) -> tuple[jax.Array, ...]:

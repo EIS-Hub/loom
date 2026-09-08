@@ -131,6 +131,15 @@ at every scale. On 2- and 3-junta tasks of the same shape the relay is at 0.47�
 split reaches 1.000 on every run, the flip credit 0.92–1.00. "A signal for shallow circuits"
 means one hidden layer.
 
+**Also found (2026-09-08).** The per-gate signal, the adjoint variable before the readout, is now
+exposed (`signals.errors`) and has its own cell, `to="gate"`: the gate's summed error broadcast to
+every entry, address-blind. Under descent it does not leave chance, as it cannot: a table whose
+entries all move together learns a bias (`probes/2026-09-08-per-gate-descent.py`; soft.relay.gate
+0.48–0.53 where soft.relay.entry reaches 1.000, hard.uniform.gate 0.49–0.56 where the entry cell
+reaches 0.84–0.94, hard.reachable.gate 0.50–0.52). Its use is downstream: it is what a wire or a
+bus carries, and a rule reading it with the gate's own inputs must reconstruct the address, the
+step-3 benchmark.
+
 **Measured and read.** Measured, and audited: the flip credit trains the bits to a fixed point
 of single flips and no substitute cost does; the blind transports order as wiring-shaped, random,
 none on eight seeds; masking the random bus to reachable outputs lifts it to the wiring-shaped

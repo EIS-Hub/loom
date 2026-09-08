@@ -52,3 +52,14 @@ def test_restricting_the_bus_to_reachable_outputs_lifts_it_to_the_wiring_shaped_
         acc = {via: on_the_bits(via, seed)[3] for via in ("uniform", "reachable", "direct")}
         assert acc["reachable"] > acc["direct"]
         assert acc["reachable"] > 0.75  # in the wiring-shaped split's range, not the bus's
+
+
+def test_descent_on_the_per_gate_signal_does_not_leave_chance():
+    """The address factor is necessary: with the gate's error broadcast to every entry, a table
+    can only learn a bias. Kept as a claim so the straw man stays burnt on the record."""
+    for seed in SEEDS:
+        t, x, y, _ = recipes.setup(DEEP_HARD_FLOOR, ADD, seed)
+        t, x, y = recipes.run(
+            DEEP_HARD_FLOOR._replace(signal=Signal("hard", "uniform", "gate")), ADD, seed
+        )
+        assert abs(float(tile.accuracy(t, x, y, "hard")) - 0.5) < 0.1
