@@ -278,11 +278,14 @@ Scored against the reference and run under descent on a four-layer tile of arity
   found the one reason: it delivers feedback from outputs a gate cannot reach, noise the gate
   cannot cancel. Masked to the reachable outputs (`reachable`), the same random bus trains like
   the wiring-shaped split (0.82–0.95); the path counts with a random sign per gate and output
-  train as well as the counts. **A fixed feedback trains if its support is the wiring's
-  reachability; its signs can be anything fixed.**
+  train as well as the counts. **On the shapes and tasks tested, a fixed feedback trains if its
+  support is the wiring's reachability; its signs can be anything fixed.** One four-layer shape,
+  addition and two junta families, eight seeds: a strong determinant here, not a law.
 
-So straight-through, which reached the target on the flat tile, is a signal for one hidden layer,
-where the exact relay is in fact the better bits signal; with two it has failed. At depth a bits
+So straight-through, which reached the target on the flat tile, is a signal for one hidden layer
+on these tasks, where the exact relay is in fact the better bits signal; with two it has failed
+here, and the recent depth results on straight-through elsewhere are the comparator to read
+before saying more. At depth a bits
 fabric has three signals that train, any fixed feedback on the reachability delivered by wires or
 by a bus, and the flip credit, and the one autodiff would suggest is the one that does not. The soft pass on the chip, a
 substrate that holds probabilities, keeps the exact signal; that is the question the second
