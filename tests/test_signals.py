@@ -63,7 +63,7 @@ def test_the_partial_to_the_entry_changes_no_sign(on):
         assert jnp.array_equal(jnp.sign(a), jnp.sign(b))
 
 
-@pytest.mark.parametrize("via", ["uniform", "direct"])
+@pytest.mark.parametrize("via", ["uniform", "direct", "reachable"])
 def test_the_blind_transports_are_the_relay_at_the_output_layer_only(via):
     t, x, y = setup(6, "deep")
     by_relay = signals.compute(Signal("soft", "relay"), t, x, y)
@@ -86,6 +86,17 @@ def test_direct_feedback_through_the_path_counts_is_the_uniform_split():
     via_layers = signals.compute(Signal("soft", "uniform", "entry"), t, x, y)
     for a, b in zip(via_bus, via_layers, strict=True):
         assert jnp.allclose(a, b, atol=1e-6)
+
+
+def test_reachability_counts_wiring_paths_and_masks_the_bus():
+    t, x, y = setup(9, "deep")
+    acts = tile.activations(t, x, "soft")
+    counts = signals.reachability(t, acts, y.shape[1])
+    assert all(jnp.all(c >= 0) and jnp.all(c == jnp.round(c)) for c in counts)  # whole paths
+    assert jnp.all(counts[-1] == jnp.eye(y.shape[1]))  # an output gate reaches itself only
+    assert any(jnp.any(c == 0) for c in counts[:-1])  # some gate cannot reach some output
+    masked = signals.compute(Signal("hard", "reachable", "entry"), t, x, y)
+    assert all(jnp.all(jnp.isfinite(a)) for a in masked)
 
 
 def test_labels_are_ascii_names_and_no_code_reads_them():

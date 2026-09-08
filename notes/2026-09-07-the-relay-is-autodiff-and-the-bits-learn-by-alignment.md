@@ -172,3 +172,19 @@ matters for the second substrate. And the bits' ceiling: what the blind split ca
 **For the map.** blastema's finding that `delta·basis` (hard.relay.entry) is the deployable optimiser
 held on flat tiles; at four layers it does not. On the bits, the deployable signal so far is the
 blind split, and it learns by alignment, not by gradient.
+
+**Audited (2026-09-08).** An adversarial audit reran this note on the CPU (its tables were
+GPU-run before the probes were pinned) and attacked every statement; its experiments are the
+`probes/2026-09-08-audit-*.py` files, its verdicts in the next note. What held: the relay is
+autodiff to 1e-7 on both passes, on windows and on saturated tiles; the exact relay never trains
+on the bits at this depth under any rate, optimiser, init scale or task tried, and chance is the
+majority class, 0.516; the votes are unanimous "flip" in every layer; the hidden updates carry the
+blind split's learning; all four hard-pass claims hold on eight recipe seeds. What was sharpened:
+"a signal for shallow circuits" means one hidden layer, where the relay is the *better* bits
+signal (0.63–0.81), and it has failed by two; "the gates drift monotone" is true as measured and
+an artefact of the carry being +1, since they drift to whatever fixed sign they are given; the
+alignment measured here (the Jacobian against the feedback) is not feedback alignment's own
+quantity, which rises mid-training and falls back while accuracy still rises. Device: the
+chattering cells of the training table (the exact relay at 0.1; `soft.uniform.entry` seed 2, here
+0.859, 0.910 on the CPU) move at the third decimal between backends; every other cell reproduces.
+

@@ -11,15 +11,15 @@ XOR gate in [`signals-worked.md`](signals-worked.md).
 | coordinate | values | meaning |
 |---|---|---|
 | `on` | `soft`, `hard` | the pass the circuit is linearised on: the soft forward, or the deployed bits |
-| `via` | `autodiff`, `relay`, `uniform`, `direct`, `flip` | whose transposed Jacobian carries the error back to each gate: the circuit's own (by autodiff, or locally by the relay), the same wiring with every gate a sum (`uniform`, feedback alignment shaped by the wiring), a fixed random ±1 bus from the outputs (`direct`, direct feedback alignment), or, outside the frame, the exact credit of one bit flip (`flip`) |
+| `via` | `autodiff`, `relay`, `uniform`, `direct`, `reachable`, `flip` | whose transposed Jacobian carries the error back to each gate: the circuit's own (by autodiff, or locally by the relay), the same wiring with every gate a sum (`uniform`, feedback alignment shaped by the wiring), a fixed random ±1 bus from the outputs (`direct`, direct feedback alignment), that bus masked to the outputs each gate can reach (`reachable`), or, outside the frame, the exact credit of one bit flip (`flip`, on the bits only) |
 | `to` | `logit`, `entry` | the parameter the local partial is taken to: the logit, or the stored entry, which leaves out σ′(logit) |
 
 `REFERENCE = Signal("soft", "autodiff", "logit")` is the true gradient of the loss on the soft
 pass: the idealised signal every other one is scored against. `Signal("hard")` is the same
 autodiff run on the bits, the signal usually called straight-through. Naming products would
 explode; naming coordinates keeps the table small and makes every combination a cell the matrix
-can visit: `signals.CELLS` lists the eighteen the code supports (autodiff cannot take the partial
-to the entry). A label such as `hard.relay.entry` is the coordinates joined, a display name and a
+can visit: `signals.CELLS` lists the twenty the code supports (autodiff cannot take the partial
+to the entry; the flip credit is a bits quantity). A label such as `hard.relay.entry` is the coordinates joined, a display name and a
 test id; a gate asserts no code branches on one.
 
 ## One frame: the adjoint method
@@ -38,7 +38,7 @@ three choices inside that formula:
 | coordinate | in adjoint terms |
 |---|---|
 | `on` | where the system is linearised: at the soft state, or at the bits |
-| `via` | whose transposed Jacobian carries $\lambda$: the circuit's own, computed by autodiff or locally by the relay; the all-sums network's on the same wiring (uniform); a fixed one-layer network's from the outputs to every gate (direct) |
+| `via` | whose transposed Jacobian carries $\lambda$: the circuit's own, computed by autodiff or locally by the relay; the all-sums network's on the same wiring (uniform); a fixed one-layer network's from the outputs to every gate (direct), or to the gates that can reach each output (reachable) |
 | `to` | which parameter the local partial is taken to: the logit, or the stored entry |
 
 The frame also says what is *outside* it: a signal carrying a second-order term, the exact credit
@@ -122,7 +122,8 @@ feedback alignment shaped by the wiring (`uniform`).
 seed through a fixed matrix, $\lambda_g = \sum_o B[g, o]\, e_o$, with $B$ random ±1 drawn once
 from the tile's shape and the identity at the output layer, whose gates read their own residual.
 Direct feedback alignment (`direct`): what a bus and a coefficient per gate would compute. A test
-asserts that the same construction with $B$ = the wiring's path counts is the uniform split.
+asserts that the same construction with $B$ = the wiring's path counts (`signals.reachability`)
+is the uniform split; `reachable` is the random $B$ masked to where those counts are nonzero.
 
 **8. The readout**, item 4's sum, closes the frame: a signal is a choice of adjoint, then
 $s[a] = \sum_b \lambda_{g,b}\, P_b(a \mid u_b)$, times $\sigma'(z[a])$ when `to="logit"`.
@@ -135,9 +136,11 @@ $$\Delta L = \sum_o \big( e_o\, \Delta_o + \tfrac{1}{2} |\Delta_o| \big).$$
 The first is what the relay carries. The second is the cost of changing an output that was right,
 invisible to any adjoint because a right output has zero residual, and on bits as large as the
 first. It is carried by a second layered adjoint, the **reach**, the same recursion with
-$|c|$ as the carry seeded by ones, counting the outputs a flip at the gate changes. The signal is
-the relay's plus half the reach in the direction of the flip, $(1 - 2H[a])$: exact for one flip,
-not a gradient.
+$|c|$ as the carry seeded by ones: the number of live paths from the gate to the outputs, which
+is the number of outputs a flip changes wherever paths do not reconverge (exact in the upper
+layers, an over-count for a few percent of the pairs at the input layer). The signal is the
+relay's plus half the reach in the direction of the flip, $(1 - 2H[a])$: exact for one flip where
+the wiring does not reconverge, not a gradient, and a bits quantity (no soft cell).
 
 ## Running it on the bits
 
@@ -173,6 +176,7 @@ costs: state per gate beyond its table, reads of its own table per case, and wir
 | `relay` | a counter per entry (the logit's stand-in) | its own table at each flipped input: $k$ reads | a reverse channel per forward wire, carrying a 2-bit message ($\lambda$ times a sensitivity in $\{-1,0,1\}$), summed where a line fans out |
 | `uniform` | the same counters | none | a reverse channel per wire, but one message per gate broadcast to all its sources, plus the fan-out sum |
 | `direct` | the same counters, and a fixed ±1 coefficient per output | none | a bus of $n_{out}$ residual bits, no reverse wiring |
+| `reachable` | the same, and one bit per output: reachable or not (the wiring, read once) | none | the same bus |
 | `flip` | the same counters | $k$ reads | a reverse channel per wire carrying two numbers, the error and the reach |
 | any, on the soft pass | probabilities rather than bits, for activations and tables: an analogue or stochastic representation | | as above |
 
@@ -205,18 +209,21 @@ Scored against the reference and run under descent on a four-layer tile of arity
 - **The wiring-shaped feedback** trains to 0.84–0.98 and keeps moving. Its message is a direction
   for the gate's output rather than a flip, so an entry already facing that way stays and the
   entry moves on the majority of its cases; and it learns by **feedback alignment**: its carry is
-  a fixed +1 and the gates drift monotone to make it right (the agreement between the circuit's
-  actual Jacobian and the feedback climbs from one half to 0.8–0.96 along training, and stays at
-  one half under the relay).
-- **The random bus** trains worst of the blind transports (0.63–0.73 on the bits): the circuit
-  aligns to it partly, then loses it. Random signs per gate and output ask a gate to affect two
-  outputs through one shared path with opposite signs, and to answer outputs it cannot reach;
-  the wiring-shaped feedback asks every gate for one thing it can do alone, be monotone. Alignment
-  wants a feedback the forward circuit can realise (a reading, to be tested).
+  fixed and the gates drift to make it right (the agreement between the circuit's actual Jacobian
+  and the feedback climbs from one half to 0.8–0.96 along training, and stays at one half under
+  the relay). The sign of the carry does not matter: −1 everywhere, or a random fixed sign per
+  edge, trains as well, and the gates drift to the sign they are given.
+- **The random bus** trains worst of the blind transports (0.63–0.77 on the bits), and the audit
+  found the one reason: it delivers feedback from outputs a gate cannot reach, noise the gate
+  cannot cancel. Masked to the reachable outputs (`reachable`), the same random bus trains like
+  the wiring-shaped split (0.82–0.95); the path counts with a random sign per gate and output
+  train as well as the counts. **A fixed feedback trains if its support is the wiring's
+  reachability; its signs can be anything fixed.**
 
-So straight-through, which reached the target on the flat tile, is a signal for shallow circuits.
-At depth a bits fabric has two signals that train, the wiring-shaped feedback and the flip credit,
-and the one autodiff would suggest is the one that does not. The soft pass on the chip, a
+So straight-through, which reached the target on the flat tile, is a signal for one hidden layer,
+where the exact relay is in fact the better bits signal; with two it has failed. At depth a bits
+fabric has three signals that train, any fixed feedback on the reachability delivered by wires or
+by a bus, and the flip credit, and the one autodiff would suggest is the one that does not. The soft pass on the chip, a
 substrate that holds probabilities, keeps the exact signal; that is the question the second
 substrate inherits, and the question step 2 inherits is which of these signals the workshop is
 trained on.

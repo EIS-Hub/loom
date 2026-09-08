@@ -30,9 +30,10 @@ def descend(
     """Adam on the table logits, fed the signal's per-logit arrays; the wiring stays fixed.
 
     Yields the tile after every step, without end: the caller sets the budget. ``window`` is how
-    many cases a step sees: all by default (the batched floor), or a random window from the stream
-    of cases as a deployed tile would see them (``window=1`` is fully online). Descent on the bits
-    (``Signal("hard")``) wants a smaller step than on the soft pass: bits chatter at the soft rate.
+    many cases a step sees: all by default (the batched floor), or ``window`` cases drawn with
+    replacement, as a deployed tile meets them in a stream (``window=1`` is fully online). Descent
+    on the bits (``Signal("hard")``) wants a smaller step than on the soft pass: bits chatter at the
+    soft rate.
     """
     opt = optax.adam(lr)
     state = opt.init(tile.logits)

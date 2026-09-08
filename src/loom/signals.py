@@ -24,7 +24,7 @@ import jax.numpy as jnp
 from loom.tile import Read, Tile, activations, forward, read, run, tables
 
 Pass = Literal["soft", "hard"]
-Via = Literal["autodiff", "relay", "uniform", "direct", "flip"]
+Via = Literal["autodiff", "relay", "uniform", "direct", "reachable", "flip"]
 To = Literal["logit", "entry"]
 
 
@@ -45,9 +45,12 @@ REFERENCE = Signal()  # the true gradient on the soft pass: what every signal is
 CELLS = tuple(
     Signal(on, via, to)
     for on, via, to in product(
-        ("soft", "hard"), ("autodiff", "relay", "uniform", "direct", "flip"), ("logit", "entry")
+        ("soft", "hard"),
+        ("autodiff", "relay", "uniform", "direct", "reachable", "flip"),
+        ("logit", "entry"),
     )
-    if via != "autodiff" or to == "logit"  # autodiff cannot take the partial to the entry
+    if (via != "autodiff" or to == "logit")  # autodiff cannot take the partial to the entry
+    and (via != "flip" or on == "hard")  # the cost of a flip is a bits quantity
 )  # every combination the code supports: what the combinatorial test visits
 
 
@@ -138,16 +141,24 @@ def layered(tile: Tile, acts: list[jax.Array], on: Pass, e: jax.Array, carry) ->
     return lams
 
 
-def feedback(tile: Tile, n_out: int) -> list[jax.Array]:
+def feedback(tile: Tile, n_out: int, key: int = 0) -> list[jax.Array]:
     """A fixed random ±1 matrix per hidden layer, [gates, n_out], and the identity at the output
     layer, whose gates read their own residual: the feedback of direct feedback alignment. Drawn
-    once from the tile's shape, never trained."""
-    keys = jax.random.split(jax.random.key(0), len(tile.logits) - 1)
+    once from the tile's shape and ``key``, never trained."""
+    keys = jax.random.split(jax.random.key(key), len(tile.logits) - 1)
     hidden = [
         jnp.sign(jax.random.normal(k, (lg.shape[0], n_out)))
         for k, lg in zip(keys, tile.logits[:-1], strict=True)
     ]
     return [*hidden, jnp.eye(n_out)]
+
+
+def reachability(tile: Tile, acts: list[jax.Array], n_out: int) -> list[jax.Array]:
+    """The number of wiring paths from every gate to every output, [gates, n_out] per layer: the
+    layered adjoint of the all-sums network seeded with one output at a time (the carry ignores
+    the values, so any ``n_out`` cases serve). Zero where a gate cannot reach an output."""
+    per_output = [a[:n_out] for a in acts]
+    return [c.T for c in layered(tile, per_output, "soft", jnp.eye(n_out), ones)]
 
 
 def direct(tile: Tile, e: jax.Array, matrices: list[jax.Array]) -> list[jax.Array]:
@@ -212,18 +223,35 @@ def uniform(tile: Tile, x: jax.Array, y: jax.Array, on: Pass, to: To):
 
 def direct_feedback(tile: Tile, x: jax.Array, y: jax.Array, on: Pass, to: To):
     """Direct feedback alignment: the residual on a bus, through a fixed random ±1 coefficient per
-    gate and output, no reverse wiring at all."""
+    gate and output, no reverse wiring at all, and no regard for which outputs a gate can reach."""
     acts = activations(tile, x, on)
     e = seed(acts, y)
     return readout(direct(tile, e, feedback(tile, e.shape[1])), tile, acts, on, to)
 
 
+def reachable_feedback(tile: Tile, x: jax.Array, y: jax.Array, on: Pass, to: To):
+    """Direct feedback restricted to the outputs a gate can reach: the same random ±1 bus, masked
+    by the wiring's reachability, which the audit of 2026-09-07 found to be the whole difference
+    between the bus and the wiring-shaped split. A gate needs one bit per output: reachable?"""
+    acts = activations(tile, x, on)
+    e = seed(acts, y)
+    masked = [
+        b * (r > 0)
+        for b, r in zip(
+            feedback(tile, e.shape[1]), reachability(tile, acts, e.shape[1]), strict=True
+        )
+    ]
+    return readout(direct(tile, e, masked), tile, acts, on, to)
+
+
 def flip_credit(tile: Tile, x: jax.Array, y: jax.Array, on: Pass, to: To):
     """Outside the adjoint frame: the exact first-order credit of flipping one entry on the bits,
     with the cost of the outputs it would break. Two adjoints: the relay's λ, and the *reach*, the
-    same recursion with |sensitivity| seeded by ones, counting the outputs a flip at the gate
-    changes. A flip costs half a unit per right output it reaches, so the signal is the relay's plus
-    half the reach in the direction of the flip, (1 − 2H[a])."""
+    same recursion with |sensitivity| seeded by ones: the number of live paths from the gate to the
+    outputs, which is the number of outputs a flip changes wherever paths do not reconverge (exact
+    in the upper layers, an over-count at the input layer, audit of 2026-09-07). A flip costs half a
+    unit per right output it reaches, so the signal is the relay's plus half the reach in the
+    direction of the flip, (1 − 2H[a]). Defined on the bits; a cell of the hard pass only."""
     acts = activations(tile, x, on)
     e = seed(acts, y)
     lams = layered(tile, acts, on, e, sensitivity)
@@ -243,6 +271,7 @@ TRANSPORTS = {
     "relay": relay,
     "uniform": uniform,
     "direct": direct_feedback,
+    "reachable": reachable_feedback,
     "flip": flip_credit,
 }
 

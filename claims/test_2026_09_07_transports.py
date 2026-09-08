@@ -46,5 +46,7 @@ def test_on_the_bits_at_depth_the_exact_relay_is_dead_and_the_blind_split_is_not
             recipe = DEEP_HARD_FLOOR._replace(signal=Signal("hard", via, to="entry"))
             t, x, y = recipes.run(recipe, ADD, seed)
             acc[via] = float(tile.accuracy(t, x, y, "hard"))
-        assert abs(acc["relay"] - 0.5) < 0.15  # chance: the signal reaches almost no gate
+        assert (
+            abs(acc["relay"] - 0.5) < 0.1
+        )  # chance (the majority class is 0.516; audited over 8 seeds)
         assert acc["uniform"] > 0.75  # well clear of it, though short of the target

@@ -41,4 +41,14 @@ def test_on_the_bits_the_blind_transports_order_as_wiring_shaped_random_none():
     for seed in SEEDS:
         acc = {via: on_the_bits(via, seed)[3] for via in ("uniform", "direct", "relay")}
         assert acc["uniform"] > acc["direct"] > acc["relay"]
-        assert abs(acc["relay"] - 0.5) < 0.15  # the exact relay stays at chance
+        assert (
+            abs(acc["relay"] - 0.5) < 0.1
+        )  # the exact relay stays at chance (majority class 0.516)
+
+
+def test_restricting_the_bus_to_reachable_outputs_lifts_it_to_the_wiring_shaped_split():
+    """Audit of 2026-09-07: the bus fails only where it reaches outputs a gate cannot reach."""
+    for seed in SEEDS:
+        acc = {via: on_the_bits(via, seed)[3] for via in ("uniform", "reachable", "direct")}
+        assert acc["reachable"] > acc["direct"]
+        assert acc["reachable"] > 0.75  # in the wiring-shaped split's range, not the bus's

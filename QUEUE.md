@@ -49,9 +49,10 @@ axis from step 1; softjax enters at step 6 with selection. `fit` already takes a
 online regime is a stream of case windows, W = all is the batched floor, W = 1 fully online. Tasks
 gain an output mask, not zero padding, when several share a fabric.
 
-Found in chunk 3 (2026-09-07): on the bits at depth, the exact relay (straight-through, to the
-logit or to the entry) does not train; the wiring-shaped blind split does, by feedback alignment;
-the flip credit does, to a fixed point of single flips; random direct feedback trains worst
-(`notes/2026-09-07-the-relay-is-autodiff-and-the-bits-learn-by-alignment.md`,
+Found in chunk 3 (2026-09-07, audited 2026-09-08): on the bits past one hidden layer the exact
+relay (straight-through, to the logit or to the entry) does not train; any fixed feedback whose
+support is the wiring's reachability does, whatever its signs (the wiring-shaped split, or a random
+bus masked to reachable outputs); the flip credit does, to a fixed point of single flips; an
+unmasked random bus trains worst (`notes/2026-09-07-the-relay-is-autodiff-and-the-bits-learn-by-alignment.md`,
 `notes/2026-09-07-direct-feedback-and-the-flip-credit.md`). Decided the same day: Signals III folds
 into chunk 3 under the adjoint frame, so the workshop is trained on the signals a chip would have.

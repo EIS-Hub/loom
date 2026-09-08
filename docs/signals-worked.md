@@ -152,5 +152,7 @@ $g$'s entry $10$ (to $0$) flips $r_h$ to $0$ and fixes the case, credit $e_h \De
 plus the cost of reaching one output, $\tfrac{1}{2}|\Delta_h| = \tfrac{1}{2}$: $\Delta L = -\tfrac{1}{2}$,
 the flip helps. Now the same with $y = 1$: $e_h = 0$, the relay is silent, and the flip credit says
 $0 + \tfrac{1}{2} = +\tfrac{1}{2}$: the flip would break a right case, stay. That half is the vote the
-relay never casts.
+relay never casts. With two gates the reach is the one live path; where several paths lead from a
+gate to the same output the reach counts them all and over-charges the flip, the input layer's
+small inexactness.
 
