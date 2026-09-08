@@ -25,7 +25,7 @@ FLIP = Signal("hard", "flip", "entry")
 def reach_vs_outputs(t):
     acts = activations(t, x, "hard")
     ones = jnp.ones((x.shape[0], n_out)) / N
-    reach = signals.layered(
+    reach = signals.backward(
         t, acts, "hard", ones, lambda tb, u: jnp.abs(signals.sensitivity(tb, u))
     )
     hard = tuple(tables(lg, "hard") for lg in t.logits)

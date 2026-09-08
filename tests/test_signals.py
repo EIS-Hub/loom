@@ -79,9 +79,9 @@ def test_direct_feedback_through_the_path_counts_is_the_uniform_split():
     # the number of wiring paths from every gate to every output: the layered adjoint of the
     # all-sums network, seeded with one output at a time
     per_output = [a[:n_out] for a in acts]  # one "case" per output; the carry ignores the values
-    counts = [c.T for c in signals.layered(t, per_output, "soft", jnp.eye(n_out), signals.ones)]
-    via_bus = signals.readout(
-        signals.direct(signals.seed(acts, y), counts), t, acts, "soft", "entry"
+    counts = [c.T for c in signals.backward(t, per_output, "soft", jnp.eye(n_out), signals.ones)]
+    via_bus = signals.last_hop(
+        signals.broadcast(signals.seed(acts, y), counts), t, acts, "soft", "entry"
     )
     via_layers = signals.compute(Signal("soft", "uniform", "entry"), t, x, y)
     for a, b in zip(via_bus, via_layers, strict=True):
@@ -91,7 +91,7 @@ def test_direct_feedback_through_the_path_counts_is_the_uniform_split():
 def test_reachability_counts_wiring_paths_and_masks_the_bus():
     t, x, y = setup(9, "deep")
     acts = tile.activations(t, x, "soft")
-    counts = signals.reachability(t, acts, y.shape[1])
+    counts = signals.path_counts(t, acts, y.shape[1])
     assert all(jnp.all(c >= 0) and jnp.all(c == jnp.round(c)) for c in counts)  # whole paths
     assert jnp.all(counts[-1] == jnp.eye(y.shape[1]))  # an output gate reaches itself only
     assert any(jnp.any(c == 0) for c in counts[:-1])  # some gate cannot reach some output
@@ -102,13 +102,13 @@ def test_reachability_counts_wiring_paths_and_masks_the_bus():
 def test_the_errors_are_the_per_gate_signal_and_to_gate_broadcasts_them():
     t, x, y = setup(10, "deep")
     sig = Signal("hard", "uniform", "gate")
-    lams = signals.errors(sig, t, x, y)
+    lams = signals.gate_errors(sig, t, x, y)
     assert [a.shape for a in lams] == [(x.shape[0], lg.shape[0]) for lg in t.logits]
     coarse = signals.compute(sig, t, x, y)
     for lam, c in zip(lams, coarse, strict=True):
         assert jnp.allclose(c, jnp.sum(lam, 0)[:, None])  # every entry of a gate gets its error
     with pytest.raises(ValueError):
-        signals.errors(Signal("hard", "flip"), t, x, y)
+        signals.gate_errors(Signal("hard", "flip"), t, x, y)
 
 
 def test_every_via_inside_the_frame_has_an_adjoint():

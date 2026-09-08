@@ -20,7 +20,7 @@ and `soft.uniform.entry` seed 2, recorded as 0.859 in the first note, 0.895 here
 **A bug on the way.** The first direct-feedback run did not move at all: accuracy identical at 500
 and 2000 steps on both passes (0.484–0.516). The feedback matrix was being applied to the output
 layer too, whereas in direct feedback alignment an output gate reads its own residual. Fixed
-(`feedback` returns the identity for the output layer; a test asserts direct feedback equals the
+(`random_signs`, then called `feedback`, returns the identity for the output layer; a test asserts direct feedback equals the
 relay at the output layer). The numbers below are after the fix.
 
 **Measured at initialisation** (`probes/2026-09-07-signal-ladder-by-layer.py`, sign agreement
@@ -132,7 +132,7 @@ split reaches 1.000 on every run, the flip credit 0.92–1.00. "A signal for sha
 means one hidden layer.
 
 **Also found (2026-09-08).** The per-gate signal, the adjoint variable before the readout, is now
-exposed (`signals.errors`) and has its own cell, `to="gate"`: the gate's summed error broadcast to
+exposed (`signals.gate_errors`) and has its own cell, `to="gate"`: the gate's summed error broadcast to
 every entry, address-blind. Under descent it does not leave chance, as it cannot: a table whose
 entries all move together learns a bias (`probes/2026-09-08-per-gate-descent.py`; soft.relay.gate
 0.48–0.53 where soft.relay.entry reaches 1.000, hard.uniform.gate 0.49–0.56 where the entry cell

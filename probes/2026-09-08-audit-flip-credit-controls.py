@@ -38,8 +38,8 @@ def train(signal_fn, t, x, y):
 def parts(t, x, y):
     acts = activations(t, x, "hard")
     e = signals.seed(acts, y)
-    relay = signals.readout(
-        signals.layered(t, acts, "hard", e, signals.sensitivity), t, acts, "hard", "entry"
+    relay = signals.last_hop(
+        signals.backward(t, acts, "hard", e, signals.sensitivity), t, acts, "hard", "entry"
     )
     return acts, e, relay
 
@@ -58,8 +58,8 @@ def relay_plus_constant(kappa):
 
 def relay_plus_blind_reach(t, x, y):
     acts, e, relay = parts(t, x, y)
-    reach = signals.layered(t, acts, "hard", jnp.ones_like(e) / y.size, signals.ones)
-    cost = signals.readout(reach, t, acts, "hard", "entry")
+    reach = signals.backward(t, acts, "hard", jnp.ones_like(e) / y.size, signals.ones)
+    cost = signals.last_hop(reach, t, acts, "hard", "entry")
     return tuple(a + 0.5 * c * d for a, c, d in zip(relay, cost, direction(t), strict=True))
 
 
@@ -74,17 +74,17 @@ def relay_plus_local_count(t, x, y):
 
 def uniform_plus_reach(t, x, y):
     acts, e, _ = parts(t, x, y)
-    blind = signals.readout(
-        signals.layered(t, acts, "hard", e, signals.ones), t, acts, "hard", "entry"
+    blind = signals.last_hop(
+        signals.backward(t, acts, "hard", e, signals.ones), t, acts, "hard", "entry"
     )
-    reach = signals.layered(
+    reach = signals.backward(
         t,
         acts,
         "hard",
         jnp.ones_like(e) / y.size,
         lambda tb, u: jnp.abs(signals.sensitivity(tb, u)),
     )
-    cost = signals.readout(reach, t, acts, "hard", "entry")
+    cost = signals.last_hop(reach, t, acts, "hard", "entry")
     return tuple(a + 0.5 * c * d for a, c, d in zip(blind, cost, direction(t), strict=True))
 
 

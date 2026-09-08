@@ -72,7 +72,7 @@ $r = 1 = y$, $e = 0$ and no gradient at all: a right case teaches nothing on the
 been $0$, $e = -1$ and only entry $10$ moves, by $-\sigma'(z[10])$ to the logit and by $-1$ to
 the entry.
 
-## The layered adjoint, one hop
+## The backward pass, one hop
 
 $$e_g = \sum_{h \text{ fed by } g} e_h \cdot \frac{\partial r_h}{\partial u_{h,j}}, \qquad
 \frac{\partial r_h}{\partial u_{h,j}} = r_h(u_{h,j}{=}1) - r_h(u_{h,j}{=}0).$$
@@ -129,6 +129,19 @@ $h$ will absorb by drifting toward a table that increases with $g$'s line: align
 Had $g$ fed two gates, $e_g$ would be the sum of their two messages, one per wire, which is what
 the wiring's fan-out costs in hardware.
 
+**A carry of one is an adder, not an OR.** The sensitivity of a 2-input gate to input $0$, at each
+value of the other input:
+
+| gate | other input $= 0$ | other input $= 1$ |
+|---|---|---|
+| AND | 0 (the output stays 0) | 1 |
+| OR | 1 | 0 (the output is already 1) |
+| XOR | 1 | −1 |
+| SUM, $r = u_0 + u_1$ | 1 | 1 |
+
+Every real gate's sensitivity depends on the other inputs; only the adder moves by one for any
+input at any state. The uniform split's carry pretends every gate is that adder.
+
 **On bits.** $u_g = (1, 0)$ and $H_g = (0, 1, 1, 0)$ give $r_g = 1$; with $v = 0$, $h$ addresses
 index $01$ of $H_h = (0, 1, 1, 0)$ and reads $1$; $y = 0$, so $e_h = 1$. Sensitivity by two reads:
 $H_h[01] - H_h[00] = 1 - 0 = 1$; the message is $1$; $g$'s addressed entry $10$ gets
@@ -137,7 +150,7 @@ $H_h$ been $(0, 0, 1, 1)$, a gate that copies $v$ and ignores $g$, the two reads
 $0$: sensitivity $0$, message $0$, a dead edge, and $g$ hears nothing about this case however wrong
 $h$ is. The blind split would still send $1$.
 
-## The direct adjoint and the flip credit, on the same two gates
+## The broadcast and the flip credit, on the same two gates
 
 **Direct feedback** skips $h$'s sensitivity altogether: $g$ receives the residual through a fixed
 coefficient drawn once, $\lambda_g = B[g, h] \cdot e_h$ with $B[g, h] = \pm 1$. With the positive

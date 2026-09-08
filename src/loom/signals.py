@@ -7,11 +7,11 @@ local partial is the address distribution (entry ← output) times the sigmoid's
 entry). A signal is therefore three coordinates, not a name: on which pass the circuit is
 linearised (``on``), whose transposed Jacobian carries λ back from the outputs (``via``), and to
 which parameter the local partial is taken (``to``). ``docs/signals.md`` holds the maths in order;
-this file holds it in the same order: the seed, the local partials, the two recursions that make λ,
-the readout, the adjoints a ``via`` can choose, and ``compute``, the frame in one line.
+this file holds it in the same order: the seed, the local partials, the two backward transports,
+the last hop, the adjoints a ``via`` can choose, and ``compute``, the frame in one line.
 
-The layered adjoint is re-derived 2026-09 from blastema/signals/relays.py (input_jac, _basis, the
-backward sweeps), written here as two local quantities of a gate's read and one recursion.
+The backward pass is re-derived 2026-09 from blastema/signals/relays.py (input_jac, _basis, the
+backward sweeps), written here as two local quantities of a gate's read and one backward pass.
 """
 
 from __future__ import annotations
@@ -130,19 +130,21 @@ def ones(luts: jax.Array, inputs: jax.Array) -> jax.Array:
     return jnp.ones_like(inputs)
 
 
-# The adjoints: how λ, the error at every gate's output, is carried back from the seed.
+# The two backward transports: the backward pass with a carry, and the broadcast through fixed
+# matrices. Each carries λ, the error at every gate's output, back from the seed.
 
 
-def layered(
+def backward(
     tile: Tile, acts: list[jax.Array], on: Pass, e: jax.Array, carry: Carry
 ) -> list[jax.Array]:
-    """The adjoint variable λ at every gate, layer by layer from the outputs: [B, gates] per layer.
+    """The backward pass: the adjoint variable λ at every gate, layer by layer from the outputs,
+    [B, gates] per layer.
 
     The transposed Jacobian of the forward pass, applied to the seed one layer at a time: each gate
     passes its λ to input j times ``carry(luts, inputs)[j]``, and a line's λ is the sum over the
-    gates it feeds (the forward gathers along the wiring, ``u[:, w]``; the adjoint scatters and adds
-    along the same wiring, its transpose). With ``sensitivity`` as the carry this is the chain rule;
-    with ``ones`` it is the adjoint of the same wiring with every gate a sum.
+    gate pins wired to it (the forward gathers along the wiring, ``u[:, w]``; the backward pass
+    scatters and adds along the same wiring, its transpose). With ``sensitivity`` as the carry this
+    is the chain rule; with ``ones`` it is the transpose of the same wiring with every gate a sum.
     """
     lams = [e]  # the output layer's λ is the seed itself
     for lg, w, u in reversed(list(zip(tile.logits[1:], tile.wires[1:], acts[1:-1], strict=True))):
@@ -151,9 +153,9 @@ def layered(
     return lams
 
 
-def feedback(tile: Tile, n_out: int, key: int = 0) -> list[jax.Array]:
+def random_signs(tile: Tile, n_out: int, key: int = 0) -> list[jax.Array]:
     """A fixed random ±1 matrix per hidden layer, [gates, n_out], and the identity at the output
-    layer, whose gates read their own residual: the feedback of direct feedback alignment. Drawn
+    layer, whose gates read their own residual: the matrices of direct feedback alignment. Drawn
     once from the tile's shape and ``key``, never trained."""
     keys = jax.random.split(jax.random.key(key), len(tile.logits) - 1)
     hidden = [
@@ -163,27 +165,28 @@ def feedback(tile: Tile, n_out: int, key: int = 0) -> list[jax.Array]:
     return [*hidden, jnp.eye(n_out)]
 
 
-def reachability(tile: Tile, acts: list[jax.Array], n_out: int) -> list[jax.Array]:
+def path_counts(tile: Tile, acts: list[jax.Array], n_out: int) -> list[jax.Array]:
     """The number of wiring paths from every gate to every output, [gates, n_out] per layer: the
-    layered adjoint of the all-sums network seeded with one output at a time (the carry ignores
-    the values, so any ``n_out`` cases serve). Zero where a gate cannot reach an output."""
+    backward pass of the all-sums network seeded with one output at a time (the carry ignores the
+    values, so any ``n_out`` cases serve). Zero where a gate cannot reach an output."""
     per_output = [a[:n_out] for a in acts]
-    return [c.T for c in layered(tile, per_output, "soft", jnp.eye(n_out), ones)]
+    return [c.T for c in backward(tile, per_output, "soft", jnp.eye(n_out), ones)]
 
 
-def direct(e: jax.Array, matrices: list[jax.Array]) -> list[jax.Array]:
-    """The adjoint variable at every gate through a fixed matrix straight from the outputs, no
-    layers: λ[b, g] = Σ_o B[g, o] e[b, o]. What a bus and a coefficient per gate would compute."""
+def broadcast(e: jax.Array, matrices: list[jax.Array]) -> list[jax.Array]:
+    """The broadcast: the adjoint variable at every gate through a fixed matrix straight from the
+    outputs, no layers: λ[b, g] = Σ_o B[g, o] e[b, o]. What a bus and a coefficient per gate would
+    compute."""
     return [e @ b.T for b in matrices]
 
 
-def readout(lams: list[jax.Array], tile: Tile, acts: list[jax.Array], on: Pass, to: To):
-    """The per-logit signal from the adjoint variables: λ times the local partials.
+def last_hop(lams: list[jax.Array], tile: Tile, acts: list[jax.Array], on: Pass, to: To):
+    """The last hop: from the gate's error onto its parameters, λ times the local partials.
 
     For every entry a of every gate, Σ_b λ[b, g] P_b(a | u_b), the adjoint variable against the
-    address distribution summed over cases (the partial to the entry), times σ'(z[a]) when the
-    partial is taken to the logit. ``to="gate"`` stops before the address: every entry of the gate
-    receives the gate's summed error, address-blind, the coarsest signal in the logits' shape.
+    address distribution summed over cases (the hop to the entry), times σ'(z[a]) for the hop to
+    the logit. ``to="gate"`` makes no hop: every entry of the gate receives the gate's summed
+    error, address-blind, the coarsest signal in the logits' shape.
     """
     out = []
     for lam, lg, w, u in zip(lams, tile.logits, tile.wires, acts[:-1], strict=True):
@@ -195,33 +198,36 @@ def readout(lams: list[jax.Array], tile: Tile, acts: list[jax.Array], on: Pass, 
     return tuple(out)
 
 
-# The adjoints a ``via`` can choose: each makes λ, the error at every gate's output, from the seed.
+# The adjoints a ``via`` can choose, one per ``via``, built from the two transports above.
 
 
 def relay_adjoint(tile: Tile, acts: list[jax.Array], on: Pass, e: jax.Array) -> list[jax.Array]:
     """The true adjoint computed locally: each gate carries its own sensitivity. Equal to autodiff
     where both exist (a test); what a chip with a reverse channel per wire would run."""
-    return layered(tile, acts, on, e, sensitivity)
+    return backward(tile, acts, on, e, sensitivity)
 
 
 def uniform_adjoint(tile: Tile, acts: list[jax.Array], on: Pass, e: jax.Array) -> list[jax.Array]:
     """Feedback alignment shaped by the wiring: the transpose of the same wiring with every gate a
     sum, so λ counts the wiring paths from each gate to each output. Value-blind."""
-    return layered(tile, acts, on, e, ones)
+    return backward(tile, acts, on, e, ones)
 
 
 def direct_adjoint(tile: Tile, acts: list[jax.Array], on: Pass, e: jax.Array) -> list[jax.Array]:
     """Direct feedback alignment: the residual on a bus through a fixed random ±1 coefficient per
     gate and output, no reverse wiring, and no regard for which outputs a gate can reach."""
-    return direct(e, feedback(tile, e.shape[1]))
+    return broadcast(e, random_signs(tile, e.shape[1]))
 
 
 def reachable_adjoint(tile: Tile, acts: list[jax.Array], on: Pass, e: jax.Array) -> list[jax.Array]:
     """The same bus masked to the outputs a gate can reach, one bit per output, which the audit of
     2026-09-07 found to be the whole difference between the bus and the wiring-shaped split."""
     n_out = e.shape[1]
-    reach = reachability(tile, acts, n_out)
-    return direct(e, [b * (r > 0) for b, r in zip(feedback(tile, n_out), reach, strict=True)])
+    reachable = [
+        counts > 0 for counts in path_counts(tile, acts, n_out)
+    ]  # [gates, n_out] per layer
+    matrices = [b * m for b, m in zip(random_signs(tile, n_out), reachable, strict=True)]
+    return broadcast(e, matrices)
 
 
 ADJOINTS: dict[str, Adjoint] = {
@@ -268,18 +274,18 @@ def flip_credit(tile: Tile, x: jax.Array, y: jax.Array, on: Pass, to: To):
     the reach in the direction of the flip, (1 − 2H[a]). A bits quantity: a hard-pass cell only."""
     acts = activations(tile, x, on)
     e = seed(acts, y)
-    credit = readout(relay_adjoint(tile, acts, on, e), tile, acts, on, to)
-    reach = layered(
+    credit = last_hop(relay_adjoint(tile, acts, on, e), tile, acts, on, to)
+    reach = backward(
         tile, acts, on, jnp.ones_like(e) / y.size, lambda t, u: jnp.abs(sensitivity(t, u))
     )
-    cost = readout(reach, tile, acts, on, to)
+    cost = last_hop(reach, tile, acts, on, to)
     return tuple(
         c + 0.5 * k * (1.0 - 2.0 * tables(lg, "hard"))
         for c, k, lg in zip(credit, cost, tile.logits, strict=True)
     )
 
 
-def errors(signal: Signal, tile: Tile, x: jax.Array, y: jax.Array) -> list[jax.Array]:
+def gate_errors(signal: Signal, tile: Tile, x: jax.Array, y: jax.Array) -> list[jax.Array]:
     """The adjoint variables themselves: the error at every gate's output, [B, gates] per layer,
     for any ``via`` inside the frame. The per-gate signal, what a wire or a bus actually carries;
     the best a gate can know before its own address and slope turn it into a per-entry move. A
@@ -292,7 +298,8 @@ def errors(signal: Signal, tile: Tile, x: jax.Array, y: jax.Array) -> list[jax.A
 
 
 def compute(signal: Signal, tile: Tile, x: jax.Array, y: jax.Array) -> tuple[jax.Array, ...]:
-    """The frame in one line: the seed, an adjoint chosen by ``via``, the readout to ``to``."""
+    """The frame in one line: the gate errors of the adjoint ``via`` chooses, then the last hop
+    to ``to``."""
     if signal.via == "autodiff":
         return autodiff(
             tile, x, y, signal.on, signal.to
@@ -300,8 +307,7 @@ def compute(signal: Signal, tile: Tile, x: jax.Array, y: jax.Array) -> tuple[jax
     if signal.via == "flip":
         return flip_credit(tile, x, y, signal.on, signal.to)  # outside the frame
     acts = activations(tile, x, signal.on)
-    lams = ADJOINTS[signal.via](tile, acts, signal.on, seed(acts, y))
-    return readout(lams, tile, acts, signal.on, signal.to)
+    return last_hop(gate_errors(signal, tile, x, y), tile, acts, signal.on, signal.to)
 
 
 def score(signal, reference) -> dict[str, jax.Array]:

@@ -27,7 +27,7 @@ def jacobian(t):
     per_out = []
     for o in range(n_out):
         e = jnp.zeros((x.shape[0], n_out)).at[:, o].set(1.0)
-        per_out.append(signals.layered(t, acts, "hard", e, signals.sensitivity)[:-1])
+        per_out.append(signals.backward(t, acts, "hard", e, signals.sensitivity)[:-1])
     return [jnp.stack([po[i] for po in per_out], axis=-1) for i in hidden]
 
 
@@ -62,7 +62,7 @@ def train(sig, t, steps):
 
 def counts(t):
     acts = [a[:n_out] for a in tile.activations(t, x, "soft")]
-    return [c.T for c in signals.layered(t, acts, "soft", jnp.eye(n_out), signals.ones)][:-1]
+    return [c.T for c in signals.backward(t, acts, "soft", jnp.eye(n_out), signals.ones)][:-1]
 
 
 print(
@@ -78,7 +78,7 @@ for sig in (
         al, acc = [], []
         for seed in range(SEEDS):
             t = train(sig, tile.init(jax.random.key(seed), WIDTHS, ARITY), steps)
-            fb = signals.feedback(t, n_out)[:-1] if sig.via == "direct" else counts(t)
+            fb = signals.random_signs(t, n_out)[:-1] if sig.via == "direct" else counts(t)
             al.append(alignment(t, fb)), acc.append(float(tile.accuracy(t, x, y, "hard")))
         means = [sum(a[i] for a in al) / SEEDS for i in hidden]
         print(

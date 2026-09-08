@@ -39,7 +39,9 @@ def through_bus(matrices_of):
     def f(t):
         acts = activations(t, x, "hard")
         e = signals.seed(acts, y)
-        return signals.readout(signals.direct(e, matrices_of(t, acts)), t, acts, "hard", "entry")
+        return signals.last_hop(
+            signals.broadcast(e, matrices_of(t, acts)), t, acts, "hard", "entry"
+        )
 
     return f
 
@@ -47,8 +49,8 @@ def through_bus(matrices_of):
 def through_layers(carry_of):
     def f(t):
         acts = activations(t, x, "hard")
-        lams = signals.layered(t, acts, "hard", signals.seed(acts, y), carry_of(t))
-        return signals.readout(lams, t, acts, "hard", "entry")
+        lams = signals.backward(t, acts, "hard", signals.seed(acts, y), carry_of(t))
+        return signals.last_hop(lams, t, acts, "hard", "entry")
 
     return f
 
@@ -71,28 +73,30 @@ def per_edge(signs):
 
 
 def counts(t, acts):
-    return signals.reachability(t, acts, n_out)
+    return signals.path_counts(t, acts, n_out)
 
 
 rows = {
     "uniform (path counts)": through_layers(lambda t: signals.ones),
-    "direct, key 0": through_bus(lambda t, a: signals.feedback(t, n_out, 0)),
-    "direct, key 1": through_bus(lambda t, a: signals.feedback(t, n_out, 1)),
-    "direct, key 2": through_bus(lambda t, a: signals.feedback(t, n_out, 2)),
+    "direct, key 0": through_bus(lambda t, a: signals.random_signs(t, n_out, 0)),
+    "direct, key 1": through_bus(lambda t, a: signals.random_signs(t, n_out, 1)),
+    "direct, key 2": through_bus(lambda t, a: signals.random_signs(t, n_out, 2)),
     "direct key 0, masked to reachable": through_bus(
         lambda t, a: [
-            b * (c > 0) for b, c in zip(signals.feedback(t, n_out, 0), counts(t, a), strict=True)
+            b * (c > 0)
+            for b, c in zip(signals.random_signs(t, n_out, 0), counts(t, a), strict=True)
         ]
     ),
     "direct key 1, masked to reachable": through_bus(
         lambda t, a: [
-            b * (c > 0) for b, c in zip(signals.feedback(t, n_out, 1), counts(t, a), strict=True)
+            b * (c > 0)
+            for b, c in zip(signals.random_signs(t, n_out, 1), counts(t, a), strict=True)
         ]
     ),
     "reachability, all +1": through_bus(lambda t, a: [(c > 0) * 1.0 for c in counts(t, a)]),
     "path counts x random sign, key 0": through_bus(
         lambda t, a: [
-            c * b for b, c in zip(signals.feedback(t, n_out, 0), counts(t, a), strict=True)
+            c * b for b, c in zip(signals.random_signs(t, n_out, 0), counts(t, a), strict=True)
         ]
     ),
     "carry -1 on every edge": through_layers(lambda t: lambda luts, u: -jnp.ones_like(u)),
