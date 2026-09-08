@@ -11,7 +11,7 @@ XOR gate in [`signals-worked.md`](signals-worked.md).
 | coordinate | values | meaning | in adjoint terms |
 |---|---|---|---|
 | `on` | `soft`, `hard` | the pass the derivatives are taken on: the soft forward, or the deployed bits | where the system is linearised (below) |
-| `via` | `autodiff`, `relay`, `uniform`, `direct`, `reachable`, `flip` | how the error at the outputs reaches each gate | whose transposed Jacobian carries the error: the circuit's own (by autodiff, or locally by the relay); the same wiring with every gate a sum (`uniform`, feedback alignment shaped by the wiring); a fixed random ±1 bus from the outputs (`direct`, direct feedback alignment), or that bus restricted to the outputs a gate can reach (`reachable`); outside the frame, the exact credit of one bit flip (`flip`, on the bits only) |
+| `via` | `autodiff`, `relay`, `uniform`, `direct`, `reachable`, `flip` | how the error at the outputs reaches each gate | whose transposed Jacobian carries the error: the circuit's own (by autodiff, or locally by the relay); the same wiring with every gate a sum (`uniform`, feedback alignment shaped by the wiring); a fixed random ±1 bus from the outputs (`direct`, direct feedback alignment), or that bus restricted to the outputs a gate can reach (`reachable`, which is no longer DFA: it knows the wiring's reachability); outside the frame, the exact credit of one bit flip (`flip`, on the bits only) |
 | `to` | `logit`, `entry`, `gate` | where the local partial stops: the logit $z[a]$; the stored entry $T[a]$ one step earlier, which leaves out σ′; or the gate's output, before the address, every entry receiving the gate's error | `logit` and `entry` are per entry; `gate` is the adjoint variable itself, broadcast: the per-gate signal a wire or a bus actually carries, exposed as such by `signals.gate_errors` |
 
 `REFERENCE = Signal("soft", "autodiff", "logit")` is the true gradient of the loss on the soft
@@ -158,7 +158,14 @@ asserts that the broadcast with $B = R$ is the uniform split). Zero means the ga
 output. `reachable` is the random bus with $B$ masked to where $R > 0$: the same coefficients,
 silent for outputs a gate has no path to. It costs a gate one bit per output, and it matters
 because feedback from an unreachable output is noise the gate cannot cancel, which the audit
-found to be the whole difference between the bus and the wiring-shaped split.
+found to be the whole difference between the bus and the wiring-shaped split. It is therefore
+*not* direct feedback alignment, whose feedback knows nothing of the circuit: it knows the
+wiring's reachability, structural knowledge that is static (the tables and activations never
+enter it), fixed at configuration, and computable off-line from the netlist or on the fabric by
+one backward pass of ones through the wires, once. Its closest relative is a reachability mask
+on an approximate gradient (SnAp). The honest statement is that a fixed feedback on a bus needs
+the wiring's reachability and nothing else; and when a rule decides the wiring, it decides that
+support for free.
 
 **7. The last hop** (`signals.last_hop`), item 4's sum, closes the frame: a signal is a choice of
 adjoint, then the hop from the gate's error onto its parameters, $s[a] = \sum_b \lambda_{g,b}\, P_b(a \mid u_b)$,
@@ -225,7 +232,7 @@ costs: state per gate beyond its table, reads of its own table per case, and wir
 | `relay` | a counter per entry (the logit's stand-in) | its own table at each flipped input: $k$ reads | a reverse channel per forward wire, carrying $\lambda$ times a sensitivity in $\{-1,0,1\}$: the sensitivity is two bits, $\lambda$ is not (a sum over fan-out and paths), summed again where a line fans out |
 | `uniform` | the same counters | none | a reverse channel per wire, but one message per gate broadcast to all its sources, plus the fan-out sum |
 | `direct` | the same counters, and a fixed ±1 coefficient per output | none | a bus of $n_{out}$ residual bits, no reverse wiring |
-| `reachable` | the same, and one bit per output: reachable or not (the wiring, read once) | none | the same bus |
+| `reachable` | the same, and one bit per output: reachable or not, structural knowledge fixed at configuration (from the netlist, or one backward pass of ones through the wires, once) | none | the same bus |
 | `flip` | the same counters | $k$ reads | a reverse channel per wire carrying two numbers, the error and the reach |
 | any, on the soft pass | probabilities rather than bits, for activations and tables: an analogue or stochastic representation | | as above |
 
