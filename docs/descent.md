@@ -8,8 +8,9 @@ what step 2 meta-learns.
 ## Three functions, one loop
 
 - `descend(tile, x, y, *, lr, window, key, signal)` yields the tile after every step, without
-  end; the caller sets the budget. Each step asks the signal for its per-logit arrays and hands
-  them to Adam as if they were gradients. The wiring never moves.
+  end; the caller sets the budget. Each step asks the signal for its per-logit arrays and
+  subtracts them, scaled by the rate: Δ = −lr·s, nothing normalised, no state beside the tables.
+  The wiring never moves.
 - `fit(..., steps)` returns the tile after that many steps.
 - `trajectory(..., steps, every, signal)` fits while recording, every so many steps, the accuracy
   on the signal's own pass and on the bits.
@@ -26,11 +27,22 @@ argument, not two code paths, so the window can become an axis of a recipe.
 A tile's accuracy on its training view minus its accuracy on the bits. Descent on the soft pass
 runs ahead of its deployed accuracy until the tables saturate, then the gap closes. Descent on the
 bits has no gap at any step, by construction: its training view *is* the deployed circuit. It pays
-for that with a touchier landscape and wants a smaller step (`docs/signals.md`).
+for that with a touchier landscape (`docs/signals.md`); which step it wants is measured, not
+assumed.
 
-## Why Adam, and what is not decided here
+## Why plain descent
 
-Adam is the floor's optimiser because it is the standard one and needs no tuning to reach a
-target on a small tile; the step sizes and budgets that make a claim are not here but in named
-recipes (`docs/recipes.md`). Step 2 replaces Adam by the smallest rule, Δ = −η·signal, and
-meta-learns η.
+The floor is the plain update, Δ = −lr·s, for three reasons, each a way the standard optimiser
+had been saying something about signals that was not true of them. First, an adaptive optimiser
+normalises every coordinate, so a signal's magnitude, and with it the σ′ factor that separates
+the partial to the logit from the partial to the entry, never entered any statement about which
+signal descent can follow; under the plain update the magnitude is the step, and each signal
+has a rate it wants, measured rather than assumed. Second, it carries two moments per logit, a
+memory the cost table of `docs/signals.md` explicitly leaves out of a signal's price: a floor
+with hidden state is not the floor of a rule without it. Third, on a window of one case it
+amplifies the entries a case rarely addresses, whose second moment decays toward zero, and its
+momentum carries one case's vote into the cases that follow, so the online floor was not the
+online regime. Step 2's rule is exactly −η·s with η learned, so the plain update is the only
+honest baseline from here on, and the standard optimiser never enters a signal claim again. The
+rates and budgets that make a claim are not here but in named recipes (`docs/recipes.md`); the
+numbers behind the change are in `notes/2026-09-08-the-floors-under-plain-descent.md`.

@@ -1,7 +1,9 @@
 """Descent on the tables, driven by a signal: the floor every local rule is measured against.
 
-Not a rule a chip could host when the signal is the whole circuit's gradient; but the same loop
-driven by a signal a chip can produce is already the smallest rule, and step 2 meta-learns it.
+Plain descent, Δ = −lr·s, nothing normalised and no state beside the tables: what step 2's
+smallest rule is with η fixed by hand, so the floor is the rule's own baseline. Not a rule a chip
+could host when the signal is the whole circuit's gradient; but the same loop driven by a signal a
+chip can produce is already that rule, and step 2 meta-learns it.
 """
 
 from __future__ import annotations
@@ -11,7 +13,6 @@ from itertools import islice
 
 import jax
 import jax.numpy as jnp
-import optax
 
 from loom.signals import REFERENCE, Signal, compute
 from loom.tile import Tile, accuracy
@@ -22,34 +23,34 @@ def descend(
     x: jax.Array,
     y: jax.Array,
     *,
-    lr: float = 0.1,
+    lr: float = 100.0,
     window: int | None = None,
     key: jax.Array | None = None,
     signal: Signal = REFERENCE,
 ) -> Iterator[Tile]:
-    """Adam on the table logits, fed the signal's per-logit arrays; the wiring stays fixed.
+    """Plain descent on the table logits, ``logits − lr·s`` per layer; the wiring stays fixed.
 
     Yields the tile after every step, without end: the caller sets the budget. ``window`` is how
     many cases a step sees: all by default (the batched floor), or ``window`` cases drawn with
-    replacement, as a deployed tile meets them in a stream (``window=1`` is fully online). Descent
-    on the bits (``Signal("hard")``) wants a smaller step than on the soft pass: bits chatter at the
-    soft rate.
+    replacement, as a deployed tile meets them in a stream (``window=1`` is fully online). A
+    signal's magnitude now matters: the per-entry signal is the residual over the cases' size
+    times the address and, to the logit, σ′, so rates are large numbers and a signal without σ′
+    or on a smaller window wants a smaller one; which rate each signal wants is measured, never
+    assumed (the default is the centre of the reference's plateau on the flat tile, batched:
+    ``notes/2026-09-08-the-floors-under-plain-descent.md``).
     """
-    opt = optax.adam(lr)
-    state = opt.init(tile.logits)
 
     @jax.jit
-    def step(logits, state, key):
+    def step(logits, key):
         idx = jnp.arange(len(x)) if window is None else jax.random.choice(key, len(x), (window,))
-        grads = compute(signal, Tile(logits, tile.wires), x[idx], y[idx])
-        updates, state = opt.update(grads, state, logits)
-        return optax.apply_updates(logits, updates), state
+        s = compute(signal, Tile(logits, tile.wires), x[idx], y[idx])
+        return tuple(lg - lr * g for lg, g in zip(logits, s, strict=True))
 
     rng = jax.random.key(0) if key is None else key
     logits = tile.logits
     while True:
         rng, k = jax.random.split(rng)
-        logits, state = step(logits, state, k)
+        logits = step(logits, k)
         yield Tile(logits, tile.wires)
 
 
