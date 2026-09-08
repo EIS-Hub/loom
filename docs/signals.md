@@ -251,44 +251,59 @@ question.
 
 Scored against the reference and run under descent on a four-layer tile of arity-3 gates on
 6-bit addition (`notes/2026-09-07-the-relay-is-autodiff-and-the-bits-learn-by-alignment.md`,
-`notes/2026-09-07-direct-feedback-and-the-flip-credit.md`):
+`notes/2026-09-07-direct-feedback-and-the-flip-credit.md`; those two notes ran Adam, and every
+number below that came from them is re-derived under plain descent, Δ = −lr·s, in
+`notes/2026-09-08-the-floors-under-plain-descent.md`, which is where the current numbers are):
 
 - **On the soft pass** the relay *is* the reference and reaches the target with the partial to
-  the logit or to the entry. Every blind transport loses the reference's sign after one hop
-  (chance-level agreement in every hidden layer) and stalls short of the target, the wiring-shaped
-  one highest, the random bus lower. Value-awareness, at the level of descent.
+  the logit or to the entry, each at its own rate: without σ′ the signal is larger, and under
+  plain descent the rate the reference wants leaves the relay to the entry at chance, while the
+  rate it wants is a band of its own (the 2026-09-08 note). Every blind transport loses the
+  reference's sign after one hop (chance-level agreement in every hidden layer) and stalls short
+  of the target, the wiring-shaped one highest, the random bus lower. Value-awareness, at the
+  level of descent.
 - **On the bits** every transport is at chance against the reference in every layer, and the
-  question is which one descent can follow. The exact relay, to the logit (straight-through) or to
-  the entry, does not leave chance at any rate, budget or optimiser tried. A right output is
-  silent on the bits, so the relay can only ever say "flip" to a gate on a live path and never
-  "stay": every vote an entry receives is unanimous, fixes are never weighed against breaks, and the
-  only state the relay is content with is zero error. Not dead paths (real, but the relay reaches
-  nearly as many entries as the blind split), not thrash (throttled to a few flips a step its
-  signal is 0.99 consistent and still at chance).
-- **Give the relay its "stay" votes** and it trains: the flip credit reaches 0.86–0.94 on the bits
-  and then stops exactly, at a state where no single flip helps, a local optimum of single flips.
-- **The wiring-shaped feedback** trains to 0.84–0.98 and keeps moving. Its message is a direction
-  for the gate's output rather than a flip, so an entry already facing that way stays and the
-  entry moves on the majority of its cases; and it learns by **feedback alignment**: its carry is
-  fixed and the gates drift to make it right (the agreement between the circuit's actual Jacobian
-  and the feedback climbs from one half to 0.8–0.96 along training, and stays at one half under
-  the relay). The sign of the carry does not matter: −1 everywhere, or a random fixed sign per
-  edge, trains as well, and the gates drift to the sign they are given.
-- **The random bus** trains worst of the blind transports (0.63–0.77 on the bits), and the audit
-  found the one reason: it delivers feedback from outputs a gate cannot reach, noise the gate
-  cannot cancel. Masked to the reachable outputs (`reachable`), the same random bus trains like
-  the wiring-shaped split (0.82–0.95); the path counts with a random sign per gate and output
-  train as well as the counts. **On the shapes and tasks tested, a fixed feedback trains if its
-  support is the wiring's reachability; its signs can be anything fixed.** One four-layer shape,
-  addition and two junta families, eight seeds: a strong determinant here, not a law.
+  question is which one descent can follow. The exact relay to the entry, the signal a bits
+  fabric could compute, does not leave chance at any rate or budget tried, under Adam or under
+  the plain update. To the logit (straight-through) it did not leave chance under Adam and it
+  trains under plain descent, at one band of rates, well clear of chance and short of the
+  target: the only difference between the two cells is σ′, which the plain update keeps as a
+  weight and Adam normalised away (the 2026-09-08 note; the reading, that σ′ gives a saturated
+  entry inertia, a "stay" the bare vote lacks, is not yet measured). A right output is silent on
+  the bits, so the relay can only ever say "flip" to a gate on a live path and never "stay":
+  every vote an entry receives is unanimous, fixes are never weighed against breaks, and the
+  only state the relay is content with is zero error. Not dead paths (real, but the relay
+  reaches nearly as many entries as the blind split), not thrash (throttled to a few flips a
+  step its signal is 0.99 consistent and still at chance).
+- **Give the relay its "stay" votes** and it trains: the flip credit reaches the blind split's
+  range on the bits and then stops exactly, at a state where no single flip helps, a local
+  optimum of single flips; under the plain update it is also rate-free above a threshold, since
+  a bits signal does not depend on the logits' size and the rate only scales them.
+- **The wiring-shaped feedback** trains to within a few bits of the target and keeps moving. Its
+  message is a direction for the gate's output rather than a flip, so an entry already facing
+  that way stays and the entry moves on the majority of its cases; and it learns by **feedback
+  alignment**: its carry is fixed and the gates drift to make it right (the agreement between
+  the circuit's actual Jacobian and the feedback climbs from one half to 0.8–0.96 along
+  training, and stays at one half under the relay). The sign of the carry does not matter: −1
+  everywhere, or a random fixed sign per edge, trains as well, and the gates drift to the sign
+  they are given.
+- **The random bus** trains worst of the blind transports on the bits, and the audit found the
+  one reason: it delivers feedback from outputs a gate cannot reach, noise the gate cannot
+  cancel. Masked to the reachable outputs (`reachable`), the same random bus trains like the
+  wiring-shaped split; the path counts with a random sign per gate and output train as well as
+  the counts. **On the shapes and tasks tested, a fixed feedback trains if its support is the
+  wiring's reachability; its signs can be anything fixed.** One four-layer shape, addition and
+  two junta families, eight seeds under Adam and three under the plain update: a strong
+  determinant here, not a law.
 
-So straight-through, which reached the target on the flat tile, is a signal for one hidden layer
-on these tasks, where the exact relay is in fact the better bits signal; with two it has failed
-here, and the recent depth results on straight-through elsewhere are the comparator to read
-before saying more. At depth a bits
-fabric has three signals that train, any fixed feedback on the reachability delivered by wires or
-by a bus, and the flip credit, and the one autodiff would suggest is the one that does not. The soft pass on the chip, a
-substrate that holds probabilities, keeps the exact signal; that is the question the second
+So straight-through, which reached the target on the flat tile, was read under Adam as a signal
+for one hidden layer on these tasks; under the plain update it trains at four layers too, at its
+own rate and short of the target, and the recent depth results on straight-through elsewhere
+are the comparator to read before saying more. At depth a bits fabric has four signals that
+train, any fixed feedback on the reachability delivered by wires or by a bus, the flip credit,
+and the exact relay with σ′ kept; the exact relay without it, the one signal a fabric that
+stores bits could compute with no counter, is the one that does not. The soft pass on the chip,
+a substrate that holds probabilities, keeps the exact signal; that is the question the second
 substrate inherits, and the question step 2 inherits is which of these signals the workshop is
 trained on.
 
