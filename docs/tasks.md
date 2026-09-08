@@ -11,7 +11,7 @@ A task is a truth table: every input pattern, and the bits demanded of each outp
 
 For recipes, a task is a draw: a function of a key returning `(x, y)`. `junta(n_in, n_out, k)` draws
 a fresh junta per key, `addition(n_in)` returns the same table whatever the key. The arithmetic
-*family* (addition under random operand permutations, blastema's held-out arithmetic) enters when a
+*family* (addition under random operand permutations, the held-out arithmetic of the reference implementation) enters when a
 step needs held-out tasks, at step 2. Every task is exact-width;
 when several tasks share one fabric (step 5, step 8) a task will say which output lines it uses,
 as a mask rather than zero padding, which would demand a constant 0 of the spare lines.

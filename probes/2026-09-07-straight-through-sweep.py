@@ -1,6 +1,10 @@
 """Probe: descent on the bits against the soft floor, over rate × budget × seed on 2-juntas.
 Unnamed recipe variants are built here on purpose: exploring conditions is a probe's job."""
 
+import os
+
+os.environ.setdefault("JAX_PLATFORMS", "cpu")  # a probe never takes a GPU on its own
+
 from loom import recipes, tasks, tile
 from loom.recipes import HARD_FLOOR, SOFT_FLOOR
 

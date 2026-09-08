@@ -17,7 +17,7 @@ Two tuples of arrays, one entry per layer.
   allows.
 
 `widths = (n_in, hidden…, n_out)` gives the number of lines leaving each layer. The checks use
-`(4, 16, 8, 2)` at arity 4, twenty-six gates: the shape inherited from blastema's first rung, not a
+`(4, 16, 8, 2)` at arity 4, twenty-six gates: the shape of the first experiments, not a
 derived minimum. With fan-out free, `(4, 8, 2)` works too, and a single layer of two arity-4 gates
 already represents every function of four inputs, which leaves nothing to discover. Depth becomes
 necessary when a gate cannot see all the inputs (arity below the input width); that is also where

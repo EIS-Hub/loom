@@ -11,7 +11,7 @@ hidden inside tests produces, so the boundary is a directory rather than a habit
 | **recipe** | `src/loom/recipes.py` | a named, frozen training condition: signal, step size, budget, window, hidden widths, arity, init scale | never a literal in a claim or a note; never overridden in place |
 | **test** | `tests/` | mechanics of the code; the merge gate | never a training loop |
 | **claim** | `claims/`, one file per note | a qualitative statement on the smallest instance under a named recipe, with the seeds that make it a claim | not a sweep, a table or a figure; not the science record |
-| **note** | `notes/YYYY-MM-DD-slug.md` | the finding: the question as X against its floor, the recipes by name, the numbers, the figure, the claims it left behind, what would change it | never edited; a later note supersedes by pointer; no status, no tiers |
+| **note** | `notes/YYYY-MM-DD-slug.md` | the finding and the path to it (per-seed numbers stay in the tables, with a bold mean ± sd beside them): the question as X against its floor, how the floor was chosen, the recipes by name, the numbers, the hypotheses that fell and the one that held, the claims it left behind, what would change it | never edited; a later note supersedes by pointer; no status, no tiers |
 | **probe** | `probes/YYYY-MM-DD-slug.py` | the script behind a note when a few lines are not enough; one file, imports only loom | never imported; no shared probe utilities; deletable once its note is superseded |
 
 ## How they interact
@@ -21,7 +21,10 @@ builds the tile to the task's width and fits it. Claims call it with a named rec
 the result; nothing else in a claim may train. A recipe owns *how* we train; a claim owns *what*
 is claimed, *on which task*, with *how many seeds*, and points at its note. Changing a step size
 means editing or adding a recipe, a one-file diff next to the claim that depends on it, so the same
-claim under another rate cannot happen silently. A probe may build unnamed recipe variants: exploring
+claim under another rate cannot happen silently. One swap is allowed in a claim, the recipe's
+*signal* (`DEEP_FLOOR._replace(signal=…)`): the signal is what a signals claim is about, everything
+else is the condition it holds under; a signal that needs its own condition to be fair, as the bits
+do with a smaller step, gets its own recipe. A probe may build unnamed recipe variants: exploring
 the condition space is its job, and the note records which conditions it visited.
 
 The lifecycle: a question → a probe → a note with the numbers → if the note leaves a statement that

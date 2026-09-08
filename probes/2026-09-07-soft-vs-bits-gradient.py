@@ -1,6 +1,10 @@
 """Probe: how different are the reference gradient (soft pass) and the gradient on the bits?
 Sparsity, cosine and sign agreement at initialisation, on random tiles and 2-juntas."""
 
+import os
+
+os.environ.setdefault("JAX_PLATFORMS", "cpu")  # a probe never takes a GPU on its own
+
 import jax
 import jax.numpy as jnp
 
