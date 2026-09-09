@@ -1,5 +1,5 @@
-"""Plain descent at depth is a point in the rate; what a readout at the cell buys. The exact relay to
-the entry on the deep tile under six hand-written rules, each a few lines: plain (no state), the
+"""Plain descent at depth is a point in the rate; what a readout at the cell buys. The exact relay
+to the entry on the deep tile under six hand-written rules, each a few lines: plain (no state), the
 sign of the vote (no state), momentum, RMSprop and Lion (one accumulator per entry), Adam (two).
 Rates per vote; hard accuracy at 1000, 2000 and 4000 steps, three probe seeds. The zero-state sign
 readout gives the floor a band where plain descent has a point: the depth attenuation is a
@@ -121,6 +121,5 @@ for name in RULES:
         star = "*" if bool(jnp.all(at4 == 1.0)) else " "
         cells = " · ".join(f"{float(v):.3f}" for v in at4)
         early = " ".join(f"{float(v):.2f}" for v in a[:, i, 0])
-        print(
-            f"    lr={float(lr):>7g} {star} {cells}  **{float(jnp.mean(at4)):.3f}**  (at 1000: {early})"
-        )
+        mean = float(jnp.mean(at4))
+        print(f"    lr={float(lr):>7g} {star} {cells}  **{mean:.3f}**  (at 1000: {early})")
