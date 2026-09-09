@@ -18,7 +18,7 @@ hidden inside tests produces, so the boundary is a directory rather than a habit
 
 `recipes.run(recipe, task, seed)` is the one place a condition meets a task: it draws the task,
 builds the tile to the task's width and fits it. A recipe is named after the loop it runs:
-`Descent` configures `descent.fit`; the meta-learning condition arrives with step 2 and is named
+`DescentRecipe` configures `descent.fit`; the meta-learning condition arrives with step 2 and is named
 after its loop too. Claims call it with a named recipe and assert on
 the result; nothing else in a claim may train. A recipe owns *how* we train; a claim owns *what*
 is claimed, *on which task*, with *how many seeds*, and points at its note. Changing a step size

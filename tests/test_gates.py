@@ -6,7 +6,7 @@ import re
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 # a condition belongs to a recipe, not a test (Meta is meta-learning's condition, step 2)
-TRAINING = re.compile(r"\b(recipes|lr=|Descent\(|Meta\()")
+TRAINING = re.compile(r"\b(recipes|lr=|DescentRecipe\(|MetaRecipe\()")
 LOOPS = re.compile(r"\b(descend|fit|trajectory)\(|recipes\.run\(")  # tested where defined
 
 
