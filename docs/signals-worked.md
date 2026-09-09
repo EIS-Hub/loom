@@ -46,7 +46,7 @@ In words, per case:
 |---|---|---|
 | $z[a]$ | the logit behind entry $a$; $T[a] = \sigma(z[a])$ | the tile's parameters |
 | $L$ | half the squared error at the circuit's outputs, over cases and output bits | the task |
-| $e = \partial L / \partial r$ | the **error at this gate's output**: how much the loss moves per unit move of $r$. At an output gate it is the residual, read minus demanded (over the mean's $N$); inside, it is the residual carried back through the gates downstream | elsewhere: the only factor the transport brings |
+| $e = \partial L / \partial r$ | the **error at this gate's output**: how much the loss moves per unit move of $r$. At an output gate it is the residual, read minus demanded (over the number of cases: one vote per case); inside, it is the residual carried back through the gates downstream | elsewhere: the only factor the transport brings |
 | $P(a \mid u)$ | how much entry $a$ is addressed by the current inputs: the share of the output this entry is responsible for | the gate's own inputs, as above |
 | $\sigma'(z[a]) = T[a]\,(1 - T[a])$ | how much the entry moves when its logit moves: the sigmoid's slope, at most $1/4$, near $0$ once the entry is saturated at $0$ or $1$ | the gate's own logit |
 
