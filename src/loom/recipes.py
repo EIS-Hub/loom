@@ -88,7 +88,7 @@ def trace(recipe: DescentRecipe, task: Task, seed: int, every: int = 10):
     return t, rec, x, y
 
 
-class Meta(NamedTuple):
+class MetaRecipe(NamedTuple):
     """The condition of meta-learning the rule, named after the loop it runs (``meta.learn``)."""
 
     signal: Signal  # the signal the rule is fed inside the rollout
@@ -105,10 +105,12 @@ class Meta(NamedTuple):
     scale: float = 1.0
 
 
-SOFT_META = Meta(Signal("soft", "relay", "entry"), steps=16, window=None, batch=16, hidden=(16, 8))
+SOFT_META = MetaRecipe(
+    Signal("soft", "relay", "entry"), steps=16, window=None, batch=16, hidden=(16, 8)
+)
 
 
-def train(m: Meta, task: Task, seed: int) -> tuple[jax.Array, jax.Array]:
+def train(m: MetaRecipe, task: Task, seed: int) -> tuple[jax.Array, jax.Array]:
     """Meta-learn the rule under the condition: η after every outer step, and the objective it
     descended. The seed's other half is kept for held-out draws (``adapt``)."""
     k_train, _ = jax.random.split(jax.random.key(seed))
@@ -132,7 +134,7 @@ def train(m: Meta, task: Task, seed: int) -> tuple[jax.Array, jax.Array]:
 
 
 def adapt(
-    m: Meta, eta: float, task: Task, seed: int, steps: int
+    m: MetaRecipe, eta: float, task: Task, seed: int, steps: int
 ) -> tuple[Tile, jax.Array, jax.Array]:
     """A fresh tile on a task drawn from the seed's held-out half, ``steps`` plain steps of the rule
     at η: the deployed check, and at any fixed η the plain-descent baseline."""
