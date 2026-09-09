@@ -12,6 +12,8 @@ what step 2 meta-learns.
   subtracts them, scaled by the rate: Δ = −lr·s, nothing normalised, no state beside the tables.
   That step is `rule.update` at a fixed rate (`docs/rule.md`): one step, shared by the floor, the
   rule and any instrument. The wiring never moves.
+- `descend(..., rule=)` runs any member of the hand-engineered family (`docs/rule.md`) at the
+  given rate, carrying its state; `plain` is the floor.
 - `fit(..., steps)` returns the tile after that many steps.
 - `trajectory(..., steps, every, signal)` fits while recording, every so many steps, the accuracy
   on the signal's own pass and on the bits.
