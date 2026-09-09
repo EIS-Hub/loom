@@ -17,7 +17,8 @@ could carry. Plain descent is the floor since the record chunk of the same date
 
 **Conditions.** `SOFT_META`: K = 16 steps of the rule per rollout, every case per step, a batch of
 16 fresh tiles on 16 fresh tasks per outer step, 200 outer steps of Adam at 0.1 on log η from
-η₀ = 0.01, the gradient's global norm clipped at 1. The claims swap the recipe's `control` and
+η₀ = 0.01, the gradient's global norm clipped at 1. Rates are per vote (the seed is one vote per
+case, summed over the task's two outputs), so the untrained loss on this tile is 0.25. The claims swap the recipe's `control` and
 nothing else. The probes also visited windows W = 1 and W = 4 and rollouts of 32 and 64 steps.
 Every run on the CPU.
 
@@ -29,23 +30,23 @@ loss, the last through none. `probes/2026-09-08-meta-objective-landscape.py` mea
 
 | η | W = 1, K = 64 | W = 4, K = 32 | W = all, K = 16 |
 |---|---|---|---|
-| 1 | 0.1258/0.1263 · 0.1260/0.1239 · 0.1236/0.1262 (**0.1252 / 0.1255**) | 0.1263/0.1269 · 0.1260/0.1240 · 0.1244/0.1260 (**0.1256 / 0.1256**) | 0.1267/0.1270 · 0.1259/0.1261 · 0.1249/0.1252 (**0.1259 / 0.1261**) |
-| 3 | 0.1246/0.1263 · 0.1250/0.1247 · 0.1203/0.1258 (**0.1233 / 0.1256**) | 0.1250/0.1265 · 0.1257/0.1240 · 0.1225/0.1253 (**0.1244 / 0.1253**) | 0.1259/0.1266 · 0.1254/0.1258 · 0.1240/0.1248 (**0.1251 / 0.1257**) |
-| 10 | 0.0763/0.1171 · 0.0651/0.1155 · 0.0773/0.1194 (**0.0729 / 0.1173**) | 0.1208/0.1257 · 0.1221/0.1236 · 0.1114/0.1223 (**0.1181 / 0.1239**) | 0.1242/0.1255 · 0.1240/0.1251 · 0.1204/0.1232 (**0.1228 / 0.1246**) |
-| 30 | 0.0067/0.0822 · 0.0005/0.0500 · 0.0014/0.0698 (**0.0029 / 0.0673**) | 0.0365/0.1049 · 0.0058/0.0838 · 0.0169/0.0881 (**0.0197 / 0.0923**) | 0.1154/0.1229 · 0.1079/0.1219 · 0.0877/0.1148 (**0.1037 / 0.1199**) |
-| 100 | 0.0066/0.0765 · 0.0000/0.0421 · 0.0000/0.0503 (**0.0022 / 0.0563**) | 0.0003/0.0602 · 0.0002/0.0371 · 0.0005/0.0435 (**0.0003 / 0.0469**) | 0.0014/0.0728 · 0.0009/0.0605 · 0.0023/0.0570 (**0.0015 / 0.0634**) |
-| 300 | 0.1773/0.2179 · 0.0509/0.1162 · 0.0000/0.0733 (**0.0761 / 0.1358**) | 0.0001/0.0968 · 0.0000/0.0426 · 0.0000/0.0538 (**0.0001 / 0.0644**) | 0.0001/0.0357 · 0.0001/0.0299 · 0.0002/0.0268 (**0.0001 / 0.0308**) |
-| 1000 | 0.1425/0.2058 · 0.0000/0.0592 · 0.0369/0.1062 (**0.0598 / 0.1237**) | 0.2526/0.1980 · 0.0000/0.0550 · 0.1636/0.1518 (**0.1387 / 0.1350**) | 0.0000/0.0942 · 0.0000/0.0338 · 0.0000/0.0250 (**0.0000 / 0.0510**) |
-| 3000 | 0.1793/0.1663 · 0.2274/0.2120 · 0.1460/0.1538 (**0.1842 / 0.1774**) | 0.1495/0.1910 · 0.0000/0.0384 · 0.1719/0.1815 (**0.1071 / 0.1369**) | 0.0000/0.0652 · 0.0000/0.0399 · 0.0000/0.0339 (**0.0000 / 0.0463**) |
+| 1 | 0.2504/0.2524 · 0.2513/0.2488 · 0.2441/0.2520 (**0.2486 / 0.2511**) | 0.2511/0.2533 · 0.2517/0.2481 · 0.2469/0.2513 (**0.2499 / 0.2509**) | 0.2526/0.2535 · 0.2512/0.2519 · 0.2489/0.2500 (**0.2509 / 0.2518**) |
+| 3 | 0.2355/0.2520 · 0.2383/0.2486 · 0.2211/0.2495 (**0.2316 / 0.2500**) | 0.2472/0.2523 · 0.2499/0.2480 · 0.2385/0.2484 (**0.2452 / 0.2496**) | 0.2500/0.2521 · 0.2495/0.2509 · 0.2451/0.2482 (**0.2482 / 0.2504**) |
+| 10 | 0.1354/0.1969 · 0.0040/0.1389 · 0.0217/0.1829 (**0.0537 / 0.1729**) | 0.1625/0.2383 · 0.0975/0.2234 · 0.1145/0.2180 (**0.1248 / 0.2265**) | 0.2434/0.2488 · 0.2415/0.2480 · 0.2216/0.2403 (**0.2355 / 0.2457**) |
+| 30 | 0.0004/0.1041 · 0.0002/0.0693 · 0.0003/0.0951 (**0.0003 / 0.0895**) | 0.0018/0.1413 · 0.0011/0.0977 · 0.0055/0.1130 (**0.0028 / 0.1173**) | 0.0651/0.2110 · 0.0129/0.1800 · 0.0267/0.1676 (**0.0349 / 0.1862**) |
+| 100 | 0.3661/0.3841 · 0.0001/0.1430 · 0.0000/0.1321 (**0.1221 / 0.2197**) | 0.0002/0.1477 · 0.0001/0.0711 · 0.0002/0.0955 (**0.0002 / 0.1048**) | 0.0004/0.0882 · 0.0004/0.0743 · 0.0009/0.0689 (**0.0006 / 0.0772**) |
+| 300 | 0.2187/0.2466 · 0.1021/0.1268 · 0.3087/0.3262 (**0.2098 / 0.2332**) | 0.3855/0.2956 · 0.0000/0.1037 · 0.0000/0.0617 (**0.1285 / 0.1537**) | 0.0001/0.1300 · 0.0000/0.0695 · 0.0001/0.0434 (**0.0001 / 0.0810**) |
+| 1000 | 0.4447/0.3790 · 0.1382/0.2211 · 0.2138/0.1981 (**0.2656 / 0.2661**) | 0.3389/0.3099 · 0.0000/0.0829 · 0.3745/0.3018 (**0.2378 / 0.2315**) | 0.0000/0.2028 · 0.0000/0.0692 · 0.0000/0.0715 (**0.0000 / 0.1145**) |
+| 3000 | 0.5022/0.4303 · 0.3318/0.4695 · 0.2189/0.2315 (**0.3510 / 0.3771**) | 0.5158/0.4097 · 0.0000/0.0739 · 0.2550/0.3221 (**0.2569 / 0.2686**) | 0.5617/0.3396 · 0.0000/0.1090 · 0.1875/0.2355 (**0.2497 / 0.2280**) |
 
 Two things are in the table. The step size the objective wants depends on the window: fully
-online (W = 1) the final loss has an interior optimum at η ≈ 30–100 and degrades beyond, at W = 4
-it sits at 100–300, and with every case per step it has none inside this grid, the loss reaching
-zero from η ≈ 300 up on this benign shape (an exact signal, a tile that represents every
-function of four inputs). And the two objectives disagree where they should: with every case per
-step the online mean turns up again past η ≈ 300 (0.031 → 0.051 → 0.046) while the final loss stays
-at zero, the mean punishing the early overshoot of a large step that the final tile has long
-recovered from. The final loss asks where the rule *arrives*; the mean asks how it *travels*.
+online (W = 1) the final loss has its optimum at η ≈ 30 and degrades from 100 on, at W = 4 it sits
+at 30 to 100, and with every case per step the loss is at its floor from 100 to 1000 and collapses
+at 3000 (one seed at 0.56): a band, three times wider than the online optimum and shifted up. And
+the two objectives disagree where they should: with every case per step the online mean turns up
+again past η ≈ 100 (0.077 → 0.081 → 0.115) while the final loss stays at zero, the mean punishing
+the early overshoot of a large step that the final tile has long recovered from. The final loss
+asks where the rule *arrives*; the mean asks how it *travels*.
 
 **The derivative path, measured** (`probes/2026-09-08-meta-gradient-paths.py`, K = 8; cells: the
 full meta-gradient / the first-order one, the signal as data / a central finite difference with
@@ -53,20 +54,20 @@ h = 0.5; three probe seeds):
 
 | signal | η | seed 0 | seed 1 | seed 2 |
 |---|---|---|---|---|
-| soft.relay.entry | 3 | −2.22e−4 / −2.34e−4 / −2.22e−4 | −1.43e−4 / −1.50e−4 / −1.43e−4 | −2.39e−4 / −2.42e−4 / −2.39e−4 |
-| soft.relay.entry | 30 | −1.08e−4 / −9.65e−5 / −1.08e−4 | −1.33e−4 / −1.03e−4 / −1.33e−4 | −4.19e−4 / −3.18e−4 / −4.19e−4 |
-| soft.relay.entry | 300 | −4.67e−6 / −9.81e−6 / −4.67e−6 | −2.69e−6 / −7.68e−6 / −2.69e−6 | −7.10e−6 / −1.62e−5 / −7.10e−6 |
-| hard.uniform.entry | 3 | −1.98e−3 / −1.98e−3 / −8.76e−4 | −3.05e−3 / −3.05e−3 / −2.64e−3 | −2.76e−3 / −2.76e−3 / −4.44e−3 |
-| hard.uniform.entry | 30 | −9.98e−4 / −9.98e−4 / −9.94e−4 | −1.44e−3 / −1.44e−3 / −3.91e−2 | −6.72e−4 / −6.72e−4 / −6.72e−4 |
-| hard.uniform.entry | 300 | −8.66e−8 / −8.66e−8 / −8.57e−8 | −9.60e−9 / −9.60e−9 / −2.24e−8 | −7.07e−7 / −7.07e−7 / −7.08e−7 |
+| soft.relay.entry | 3 | −7.08e−4 / −7.85e−4 / −7.09e−4 | −4.74e−4 / −5.15e−4 / −4.74e−4 | −9.39e−4 / −9.44e−4 / −9.39e−4 |
+| soft.relay.entry | 30 | −1.50e−3 / −7.79e−4 / −1.50e−3 | −3.11e−3 / −1.40e−3 / −3.12e−3 | −5.17e−3 / −2.74e−3 / −5.17e−3 |
+| soft.relay.entry | 300 | +1.61e−3 / −6.60e−5 / +1.61e−3 | −8.50e−7 / −2.47e−6 / −8.50e−7 | −3.10e−6 / −5.80e−6 / −3.10e−6 |
+| hard.uniform.entry | 3 | −1.79e−2 / −1.79e−2 / −1.10e−2 | −1.12e−2 / −1.12e−2 / −7.92e−3 | −1.01e−2 / −1.01e−2 / +2.25e−3 |
+| hard.uniform.entry | 30 | −1.49e−3 / −1.49e−3 / −1.49e−3 | −4.76e−4 / −4.76e−4 / −4.77e−4 | −1.55e−3 / −1.55e−3 / −1.55e−3 |
+| hard.uniform.entry | 300 | −5.8e−11 / −5.8e−11 / 0 | 0 / 0 / 0 | −1.8e−10 / −1.8e−10 / 0 |
 
 On the soft pass the full meta-gradient is the finite difference to three digits, and the
-first-order path is not the whole of it: the term through the signal is a few percent at η = 3, a
-quarter at η = 30 and more than the first-order term itself at η = 300, growing with the step
-because the signal changes more along a longer trajectory. On the bits the full and the
-first-order meta-gradient are the same number to the last digit, as the declaration in
-`docs/meta.md` says they must be: nothing differentiates through rounded tables. There the finite
-difference disagrees on three cells of nine: the objective on the bits is piecewise smooth in η,
+first-order path is not the whole of it: the term through the signal is a tenth at η = 3, half at
+η = 30, and past the optimum, at η = 300, it can change the gradient's sign (seed 0: +1.6e−3 against
+−6.6e−5 first order), because the signal changes more along a longer trajectory. On the bits the
+full and the first-order meta-gradient are the same number to the last digit, as the declaration
+in `docs/meta.md` says they must be: nothing differentiates through rounded tables. There the finite
+difference disagrees on four cells of nine: the objective on the bits is piecewise smooth in η,
 and a difference of ±0.5 in η that crosses a flip inside the rollout measures a jump, not a slope.
 The mechanics test uses the soft relay for that reason.
 
@@ -77,23 +78,24 @@ hard accuracy; three probe seeds):
 
 | control | seed 0 | seed 1 | seed 2 | held-out at the η found |
 |---|---|---|---|---|
-| none (the true signal) | 5.06/0.1245 · 536/0.0000 · 287/0.0001 | 5.04/0.1249 · 265/0.0001 · 197/0.0004 | 5.11/0.1247 · 517/0.0000 · 318/0.0001 | 1.000 · 1.000 · 1.000 |
-| flipped | 5.6e−4/0.1268 · 2.6e−4/0.1263 · 1.1e−4/0.1256 | 5.3e−4/0.1269 · 2.4e−4/0.1261 · 1.0e−4/0.1264 | 5.4e−4/0.1267 · 2.4e−4/0.1263 · 1.0e−4/0.1259 | 0.469 · 0.438 · 0.344 |
-| shuffled | 4.02/0.1265 · 59.7/0.1254 · 65.6/0.1249 | 3.66/0.1265 · 211/0.1251 · 109/0.1252 | 4.05/0.1264 · 135/0.1257 · 36.8/0.1256 | 1.000 · 1.000 · 1.000 |
-| output-only | 4.85/0.1255 · 266/0.1168 · 310/0.1162 | 4.91/0.1257 · 259/0.1158 · 293/0.1151 | 4.92/0.1255 · 296/0.1169 · 270/0.1159 | 1.000 · 1.000 · 1.000 |
+| none (the true signal) | 5.08/0.2451 · 250/0.0001 · 127/0.0004 | 5.04/0.2465 · 170/0.0002 · 130/0.0004 | 5.13/0.2457 · 246/0.0001 · 119/0.0005 | 1.000 · 1.000 · 1.000 |
+| flipped | 5.6e−4/0.2536 · 2.6e−4/0.2526 · 1.1e−4/0.2513 | 5.3e−4/0.2537 · 2.4e−4/0.2521 · 1.0e−4/0.2528 | 5.4e−4/0.2535 · 2.4e−4/0.2525 · 1.0e−4/0.2519 | 0.469 · 0.438 · 0.344 |
+| shuffled | 3.98/0.2527 · 26.9/0.2507 · 32.8/0.2499 | 3.64/0.2525 · 102/0.2503 · 54.5/0.2504 | 4.00/0.2525 · 63.1/0.2514 · 17.6/0.2512 | 1.000 · 1.000 · 1.000 |
+| output-only | 4.88/0.2497 · 166/0.2331 · 143/0.2327 | 4.91/0.2498 · 101/0.2324 · 129/0.2305 | 4.92/0.2495 · 144/0.2337 · 124/0.2321 | 1.000 · 1.000 · 1.000 |
 
 Under the true signal η rises by a constant factor per outer step (5 at step 50 means nine
-doublings from 0.01 in fifty steps), overshoots into the region where the final loss is already
-zero, and settles back to a few hundred, where some batch members begin to overshoot and pull it
-down: the loss is at its floor from step 50 on, and the η found adapts a fresh tile on a task the
-loop never saw to 1.000 in 500 plain steps, on every seed. Under the flipped signal η can only
-shrink, and does, geometrically, to a hundredth of its start; nothing trains and the tile stays
-at chance. Under the shuffled signal the loop finds an η of the same order as the true signal's
-(37 to 109) and the loss does not move: the numbers carry no information about which entry they
-reach. Under output-only the output gates learn what they can on their own residual, a drop of a
-tenth in the loss and no more. The last column for the two information controls says only that
-the η they wandered to is a working step size *for the true signal*, which every η between ten
-and a thousand is on this tile; it is not a result about the controls.
+doublings from 0.01 in fifty steps), overshoots to about 250, into the region where the final loss
+is already at its floor, and settles near 125, where some batch members begin to overshoot and
+pull it down: the loss is at its floor from step 100 on, and the η found adapts a fresh tile on a
+task the loop never saw to 1.000 in 500 plain steps, on every seed. Under the flipped signal η can
+only shrink, and does, geometrically, to a hundredth of its start; nothing trains and the tile
+stays at chance. Under the shuffled signal the loop finds an η of the same order as the true
+signal's (18 to 102) and the loss does not move: the numbers carry no information about which
+entry they reach. Under output-only the output gates learn what they can on their own residual, a
+drop of a fourteenth in the loss (0.250 → 0.233) and no more. The last column for the two
+information controls says only that the η they wandered to is a working step size *for the true
+signal*, which every η between ten and a few hundred is on this tile; it is not a result about the
+controls.
 
 **Path.**
 
@@ -104,7 +106,7 @@ and a thousand is on this tile; it is not a result about the controls.
 2. *The parameterisation.* η = exp(raw) rather than softplus: at a non-functional start the two
    agree, but a constant factor per Adam step reaches a working scale in log(scale)/lr steps, and
    the flipped control then drives raw to −∞ geometrically, which the table shows (η falls by a
-   factor 2.3 every fifty steps). Adam on the host is kept for the same reason: the gradient on
+   factor 2.2 every fifty steps). Adam on the host is kept for the same reason: the gradient on
    raw is η times the gradient on η and vanishes exactly where the check starts.
 3. *What the shuffled control leaks.* A permutation within a layer keeps the layer's mean, and the
    mean is a real component of the gradient, so the loop's η under it is not zero and not
@@ -114,7 +116,7 @@ and a thousand is on this tile; it is not a result about the controls.
    half and a held-out half, and `adapt` draws from the second. Fixed here, never looked at while
    step 3's rule is designed.
 5. *The second-order term.* Read as negligible on the soft pass before it was measured; the
-   derivative-path table says it grows with η and exceeds the first-order term at η = 300. It is
+   derivative-path table says it grows with η and dominates it past the optimum. It is
    kept in the objective on the soft pass (the rollout differentiates through the signal unless
    told not to); the bits never have it.
 
