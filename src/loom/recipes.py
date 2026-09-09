@@ -19,9 +19,11 @@ from loom.tile import Tile, init
 Task = Callable[[jax.Array], tuple[jax.Array, jax.Array]]  # key → (x, y)
 
 
-class Recipe(NamedTuple):
+class DescentRecipe(NamedTuple):
+    """The condition of direct descent on the tables, Δ = −lr·s: what ``descent.fit`` runs."""
+
     signal: Signal  # which signal drives descent
-    lr: float
+    lr: float  # the plain rate, in logit units per unit average vote (one vote per case)
     steps: int
     window: int | None  # None: every case per step, the batched default; 1: fully online
     hidden: tuple[int, ...]  # widths between the task's inputs and outputs
@@ -29,16 +31,26 @@ class Recipe(NamedTuple):
     scale: float = 1.0  # init scale of the logits
 
 
-SOFT_FLOOR = Recipe(REFERENCE, lr=0.1, steps=500, window=None, hidden=(16, 8))
-HARD_FLOOR = Recipe(Signal("hard"), lr=0.02, steps=2000, window=None, hidden=(16, 8))
-ONLINE_FLOOR = Recipe(REFERENCE, lr=0.05, steps=3000, window=1, hidden=(16, 8))
-DEEP_FLOOR = Recipe(REFERENCE, lr=0.1, steps=4000, window=None, hidden=(32, 32, 16), arity=3)
-DEEP_HARD_FLOOR = Recipe(
-    Signal("hard"), lr=0.02, steps=2000, window=None, hidden=(32, 32, 16), arity=3
+# Rates sit at the centre of each signal's working plateau on the probe seeds and budgets at twice
+# the first step at which every probe seed reached the target, except at depth, where the plain
+# reference has no rate that reaches on every tile and the budget is the tables' full 4000, so the
+# claim is about the landscape, not the clock (notes/2026-09-08-the-floors-under-plain-descent.md).
+SOFT_FLOOR = DescentRecipe(REFERENCE, lr=50.0, steps=400, window=None, hidden=(16, 8))
+HARD_FLOOR = DescentRecipe(Signal("hard"), lr=150.0, steps=3000, window=None, hidden=(16, 8))
+ONLINE_FLOOR = DescentRecipe(REFERENCE, lr=50.0, steps=500, window=1, hidden=(16, 8))
+DEEP_FLOOR = DescentRecipe(
+    REFERENCE, lr=750.0, steps=4000, window=None, hidden=(32, 32, 16), arity=3
 )
+DEEP_HARD_FLOOR = DescentRecipe(
+    Signal("hard"), lr=250.0, steps=2000, window=None, hidden=(32, 32, 16), arity=3
+)
+# The soft relay to the entry wants its own rate at depth: the reference's leaves it at chance.
+DEEP_RELAY = DEEP_FLOOR._replace(signal=Signal("soft", "relay", "entry"), lr=375.0)
 
 
-def setup(recipe: Recipe, task: Task, seed: int) -> tuple[Tile, jax.Array, jax.Array, jax.Array]:
+def setup(
+    recipe: DescentRecipe, task: Task, seed: int
+) -> tuple[Tile, jax.Array, jax.Array, jax.Array]:
     """The task drawn and the tile built to its width, from one seed."""
     k_task, k_tile, k_run = jax.random.split(jax.random.key(seed), 3)
     x, y = task(k_task)
@@ -46,14 +58,14 @@ def setup(recipe: Recipe, task: Task, seed: int) -> tuple[Tile, jax.Array, jax.A
     return tile, x, y, k_run
 
 
-def run(recipe: Recipe, task: Task, seed: int) -> tuple[Tile, jax.Array, jax.Array]:
+def run(recipe: DescentRecipe, task: Task, seed: int) -> tuple[Tile, jax.Array, jax.Array]:
     """Train under the recipe: the fitted tile and the cases it was fitted on."""
     tile, x, y, key = setup(recipe, task, seed)
     r = recipe
     return fit(tile, x, y, r.steps, lr=r.lr, window=r.window, key=key, signal=r.signal), x, y
 
 
-def trace(recipe: Recipe, task: Task, seed: int, every: int = 10):
+def trace(recipe: DescentRecipe, task: Task, seed: int, every: int = 10):
     """Train under the recipe while recording the deploy gap: (tile, record, x, y)."""
     tile, x, y, key = setup(recipe, task, seed)
     r = recipe

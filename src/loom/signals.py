@@ -66,14 +66,16 @@ CELLS = tuple(
 
 
 def squared_error(out: jax.Array, y: jax.Array) -> jax.Array:
-    """Half the squared error over cases and output bits. Its derivative at an output is the
-    residual itself, the error a chip can see, in every read; a cross-entropy is infinite when a
-    bit is wrong and, clipped, its derivative no longer says how wrong."""
-    return 0.5 * jnp.mean((out - y) ** 2)
+    """Half the squared error per case, averaged over the cases. Its derivative at an output is the
+    residual over the number of cases: one vote per case and output line, the error a chip can see,
+    the same size whether the window is one case or the whole table (dividing by the number of
+    outputs as well would only make a task with more outputs want a larger rate). A cross-entropy
+    is infinite when a bit is wrong and, clipped, its derivative no longer says how wrong."""
+    return 0.5 * jnp.mean(jnp.sum((out - y) ** 2, axis=-1))
 
 
 def loss(tile: Tile, x: jax.Array, y: jax.Array, mode: Read = "soft") -> jax.Array:
-    """The squared error of the read against the demanded bits."""
+    """The squared error of the read against the demanded bits, per case, averaged over cases."""
     return squared_error(forward(tile, x, mode), y)
 
 
@@ -83,8 +85,8 @@ def residual(tile: Tile, x: jax.Array, y: jax.Array, mode: Read = "hard") -> jax
 
 
 def seed(acts: list[jax.Array], y: jax.Array) -> jax.Array:
-    """∂L/∂r at the outputs, [B, n_out]: the residual, scaled as the mean loss is."""
-    return (acts[-1] - y) / y.size
+    """∂L/∂r at the outputs, [B, n_out]: the residual over the number of cases: one vote each."""
+    return (acts[-1] - y) / len(y)
 
 
 # What a gate can compute about its own read, locally: the local partials of the adjoint method.
@@ -276,7 +278,7 @@ def flip_credit(tile: Tile, x: jax.Array, y: jax.Array, on: Pass, to: To):
     e = seed(acts, y)
     credit = last_hop(relay_adjoint(tile, acts, on, e), tile, acts, on, to)
     reach = backward(
-        tile, acts, on, jnp.ones_like(e) / y.size, lambda t, u: jnp.abs(sensitivity(t, u))
+        tile, acts, on, jnp.ones_like(e) / len(y), lambda t, u: jnp.abs(sensitivity(t, u))
     )
     cost = last_hop(reach, tile, acts, on, to)
     return tuple(

@@ -2,7 +2,7 @@
 transports on a shape where depth is forced (6-input addition on four layers of arity 3)."""
 
 from loom import recipes, signals, tasks, tile
-from loom.recipes import DEEP_FLOOR, DEEP_HARD_FLOOR
+from loom.recipes import DEEP_FLOOR, DEEP_HARD_FLOOR, DEEP_RELAY
 from loom.signals import REFERENCE, Signal
 
 ADD = tasks.addition(6)
@@ -14,10 +14,8 @@ def sign_by_layer(sig, t, x, y):
     return [float(signals.score((g[i],), (r[i],))["sign"]) for i in range(len(g))]
 
 
-def test_addition_under_the_deep_floor():
-    for seed in SEEDS:
-        t, x, y = recipes.run(DEEP_FLOOR, ADD, seed)
-        assert tile.accuracy(t, x, y, "hard") == 1.0
+# test_addition_under_the_deep_floor was retracted on 2026-09-08: under plain descent no single rate
+# takes the reference to the target on every tile at depth (the note of that date re-states it).
 
 
 def test_the_uniform_split_loses_the_reference_sign_after_one_hop():
@@ -32,9 +30,11 @@ def test_the_uniform_split_loses_the_reference_sign_after_one_hop():
 
 
 def test_descent_on_the_relay_reaches_the_target_where_the_blind_split_stalls():
+    """Under DEEP_RELAY, the rate the soft relay to the entry wants (the reference's rate leaves
+    it at chance under plain descent: the 2026-09-08 note); the blind split under the same."""
     for seed in SEEDS:
         for via, reaches in (("relay", True), ("uniform", False)):
-            recipe = DEEP_FLOOR._replace(signal=Signal("soft", via, to="entry"))
+            recipe = DEEP_RELAY._replace(signal=Signal("soft", via, to="entry"))
             t, x, y = recipes.run(recipe, ADD, seed)
             assert (tile.accuracy(t, x, y, "hard") == 1.0) == reaches
 
