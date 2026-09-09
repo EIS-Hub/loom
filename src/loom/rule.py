@@ -38,9 +38,11 @@ def rate(params: Params) -> jax.Array:
 def update(eta: jax.Array | float, tile: Tile, s: tuple[jax.Array, ...], clip: float | None = None):
     """One step of the smallest rule at every logit: z ← z − η · s, held within ±clip when given.
 
-    The bound makes the stored logit a finite counter: an entry at the bound takes no further
-    credit in that direction (its derivative there is zero), which is what a chip storing a few
-    bits per entry does. Unbounded, the logit is the floating stand-in of steps 0 and 1.
+    The bound makes the stored logit a finite counter, clip/η votes deep from rail to rail. A
+    vote that pushes an entry past a rail is lost, as a saturated counter drops an increment; a
+    vote back inside moves it again. The clip's derivative is zero on a lost vote, so the outer
+    loop earns no credit for a step that changed nothing and cannot learn by saturating.
+    Unbounded, the logit is the floating stand-in of steps 0 and 1, with unlimited memory.
     """
     logits = tuple(z - eta * g for z, g in zip(tile.logits, s, strict=True))
     if clip is not None:
