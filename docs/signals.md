@@ -67,11 +67,16 @@ the read is a lookup; on soft inputs it is a distribution over the entries and t
 table's expectation under it. One formula, both passes. Every symbol, and an XOR example carried
 through, in [`signals-worked.md`](signals-worked.md).
 
-**2. The loss and its seed.** The loss is half the squared error over cases and output bits,
-chosen because its derivative at an output *is* the residual, read minus demanded, in every pass:
-on the bits a bit, −1, 0 or 1, the error a chip can see. A cross-entropy is infinite when a bit is
-wrong and, clipped, no longer says how wrong. The seed of every adjoint (`signals.seed`) is
-$\partial L / \partial r$ at the outputs, the residual over the mean's $N$.
+**2. The loss and its seed.** The loss is half the squared error per case, averaged over the
+cases of the window. Its derivative at an output is the residual, read minus demanded, over the
+number of cases: **one vote per case and output line**, the error a chip can see, on the bits a
+bit, −1, 0 or 1. Averaging over the window's cases is what makes the vote the same size whether
+the window is one case or the whole table, so online and batched descent share a rate; the loss
+is not averaged over the output lines as well, since a gate sums the votes of the outputs it
+reaches and dividing by their number would only make a task with more outputs want a larger
+rate. A cross-entropy is infinite when a bit is wrong and, clipped, no longer says how wrong.
+The seed of every adjoint (`signals.seed`) is that vote; a rate is therefore in logit units per
+unit average vote, and every rate in the notes is shown with the step it implies per layer.
 
 **3. The local partials.** The read is linear in each entry and the entry is the sigmoid of its
 logit:

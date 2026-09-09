@@ -23,7 +23,7 @@ class Descent(NamedTuple):
     """The condition of direct descent on the tables, Δ = −lr·s: what ``descent.fit`` runs."""
 
     signal: Signal  # which signal drives descent
-    lr: float  # the plain rate: the per-entry signal is the residual over the cases' size, so large
+    lr: float  # the plain rate, in logit units per unit average vote (one vote per case)
     steps: int
     window: int | None  # None: every case per step, the batched default; 1: fully online
     hidden: tuple[int, ...]  # widths between the task's inputs and outputs
@@ -35,15 +35,15 @@ class Descent(NamedTuple):
 # the first step at which every probe seed reached the target, except at depth, where the plain
 # reference has no rate that reaches on every tile and the budget is the tables' full 4000, so the
 # claim is about the landscape, not the clock (notes/2026-09-08-the-floors-under-plain-descent.md).
-SOFT_FLOOR = Descent(REFERENCE, lr=100.0, steps=400, window=None, hidden=(16, 8))
-HARD_FLOOR = Descent(Signal("hard"), lr=450.0, steps=3000, window=None, hidden=(16, 8))
-ONLINE_FLOOR = Descent(REFERENCE, lr=100.0, steps=500, window=1, hidden=(16, 8))
-DEEP_FLOOR = Descent(REFERENCE, lr=3000.0, steps=4000, window=None, hidden=(32, 32, 16), arity=3)
+SOFT_FLOOR = Descent(REFERENCE, lr=50.0, steps=400, window=None, hidden=(16, 8))
+HARD_FLOOR = Descent(Signal("hard"), lr=150.0, steps=3000, window=None, hidden=(16, 8))
+ONLINE_FLOOR = Descent(REFERENCE, lr=50.0, steps=500, window=1, hidden=(16, 8))
+DEEP_FLOOR = Descent(REFERENCE, lr=750.0, steps=4000, window=None, hidden=(32, 32, 16), arity=3)
 DEEP_HARD_FLOOR = Descent(
-    Signal("hard"), lr=1000.0, steps=2000, window=None, hidden=(32, 32, 16), arity=3
+    Signal("hard"), lr=250.0, steps=2000, window=None, hidden=(32, 32, 16), arity=3
 )
 # The soft relay to the entry wants its own rate at depth: the reference's leaves it at chance.
-DEEP_RELAY = DEEP_FLOOR._replace(signal=Signal("soft", "relay", "entry"), lr=1500.0)
+DEEP_RELAY = DEEP_FLOOR._replace(signal=Signal("soft", "relay", "entry"), lr=375.0)
 
 
 def setup(recipe: Descent, task: Task, seed: int) -> tuple[Tile, jax.Array, jax.Array, jax.Array]:

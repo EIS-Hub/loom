@@ -33,9 +33,9 @@ def descend(
     Yields the tile after every step, without end: the caller sets the budget. ``window`` is how
     many cases a step sees: all by default (the batched floor), or ``window`` cases drawn with
     replacement, as a deployed tile meets them in a stream (``window=1`` is fully online). A
-    signal's magnitude now matters: the per-entry signal is the residual over the cases' size
-    times the address and, to the logit, σ′, so rates are large numbers and a signal without σ′
-    or on a smaller window wants a smaller one; which rate each signal wants is measured, never
+    signal's magnitude now matters: the per-entry signal is the average vote per case times the
+    address and, to the logit, σ′, so a rate is in logit units per unit vote, and a signal without
+    σ′ wants a smaller one; which rate each signal wants is measured, never
     assumed (the default is the centre of the reference's plateau on the flat tile, batched:
     ``notes/2026-09-08-the-floors-under-plain-descent.md``).
     """
