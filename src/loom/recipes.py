@@ -29,6 +29,7 @@ class DescentRecipe(NamedTuple):
     hidden: tuple[int, ...]  # widths between the task's inputs and outputs
     arity: int = 4
     scale: float = 1.0  # init scale of the logits
+    rule: str = "plain"  # a name in rule.RULES: the floor, or a hand-engineered rule to beat
 
 
 # Rates sit at the centre of each signal's working plateau on the probe seeds and budgets at twice
@@ -46,6 +47,13 @@ DEEP_HARD_FLOOR = DescentRecipe(
 )
 # The soft relay to the entry wants its own rate at depth: the reference's leaves it at chance.
 DEEP_RELAY = DEEP_FLOOR._replace(signal=Signal("soft", "relay", "entry"), lr=375.0)
+# The same signal under a readout at the cell, at two rates a decade apart (a band, where the plain
+# rule has a point): the sign of the vote with no state, and RMSprop with one accumulator per entry.
+DEEP_RELAY_TENTH = DEEP_RELAY._replace(lr=37.5)
+DEEP_SIGN = DEEP_RELAY._replace(rule="sign", lr=0.1)
+DEEP_SIGN_TENTH = DEEP_SIGN._replace(lr=0.01)
+DEEP_RMSPROP = DEEP_RELAY._replace(rule="rmsprop", lr=0.1)
+DEEP_RMSPROP_TENTH = DEEP_RMSPROP._replace(lr=0.01)
 
 
 def setup(
@@ -62,12 +70,15 @@ def run(recipe: DescentRecipe, task: Task, seed: int) -> tuple[Tile, jax.Array, 
     """Train under the recipe: the fitted tile and the cases it was fitted on."""
     tile, x, y, key = setup(recipe, task, seed)
     r = recipe
-    return fit(tile, x, y, r.steps, lr=r.lr, window=r.window, key=key, signal=r.signal), x, y
+    t = fit(tile, x, y, r.steps, lr=r.lr, window=r.window, key=key, signal=r.signal, rule=r.rule)
+    return t, x, y
 
 
 def trace(recipe: DescentRecipe, task: Task, seed: int, every: int = 10):
     """Train under the recipe while recording the deploy gap: (tile, record, x, y)."""
     tile, x, y, key = setup(recipe, task, seed)
     r = recipe
-    t, rec = trajectory(tile, x, y, r.steps, every, r.signal, lr=r.lr, window=r.window, key=key)
+    t, rec = trajectory(
+        tile, x, y, r.steps, every, r.signal, lr=r.lr, window=r.window, key=key, rule=r.rule
+    )
     return t, rec, x, y
