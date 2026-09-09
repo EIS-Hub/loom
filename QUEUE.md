@@ -10,9 +10,11 @@ holds the next three; the progression below it is the plan they are drawn from.
 | 2 | 1 | Signals I: the read mode as an axis of the combinatorial test (soft, straight-through on the hard tables); what a local update may read (nothing, task identity, error) | science | 20 min | 1 | landed (#3) |
 | 3 | 1 | Signals II and III, one story under the adjoint frame: the relay and the uniform split as two carries of the layered adjoint; the partial to the entry; direct feedback as a second adjoint; the flip credit outside the frame; the ladder scored on a shape where depth is forced; the physical-cost table; the maths in order in `docs/signals.md`; two notes | science | 70 min (oversize, Gabriel's call) | 2 | landed (#4) |
 | 4 | 1 | Descent is plain: Δ = −lr·s with nothing normalised; the step 0 and 1 floors re-derived under it (the rate sweep per pass, signal and shape; recipes re-pinned; every claim re-run, what held and what moved on record); `Recipe` becomes `Descent`, the condition named after the loop it runs | record | 20 min | 3 | open (#5) |
-| 5 | 2 | Meta-learning I: the rule (`rule.py`: η the only parameter, never negative; one step z − η·s, optionally bounded) and the two loops (`meta.py`: K steps of the rule in one scan; the objective the soft loss of the tile the rule ends on; the meta-gradient through the K steps; Adam on the host); fresh states; the check from a non-functional start on the flat tile under the soft relay and its three controls (sign-flipped, shuffled, output-only); the η found adapts a held-out task; `Meta` beside `Descent` in the recipes | science | 30 min | 4 | queued (built on a branch) |
-| 6 | 2 | Meta-learning II: the pool of tile states of every age (`pool.py`: sample, write back detached, re-seed the oldest); the bits on the deep shape under the wiring-shaped feedback, the reachable bus and the flip credit, the persisted logit a bounded counter; what η means there; the ledger's first row (parameters, state per entry, reads, wiring, writes per step); the `path_counts` window fix | science | 25 min | 5 | queued |
-| 7 | 3 | The rule as a function: a small shared g over the three factors, replacing the product in the same loops; value-awareness at the rule level as an ablation (g on the fine signal, then on the per-gate signal `signals.gate_errors` with the gate's own inputs and output, reconstructing the address itself) | science | 40 min | 6 | queued |
+| 5 | 2 | The rule, one canonical step (`rule.py`: η the only parameter, never negative; one step z − η·s, optionally held within a bound, the logit as a finite counter); `descent` runs it at a fixed rate | foundation | 10 min | 4 | built (`step2/rule`) |
+| 6 | 2 | The hand-engineered family at the cell: the primitives (scale, sign, clip, first and second moment, decay, bound) and the named compositions plain · sign · momentum · RMSprop · Lion · Adam, each a few lines verified once against optax; `Descent` gains a `rule`; one claim: at depth plain descent is a point in the rate and the sign readout and RMSprop are bands; the family table with its state and arithmetic columns in `docs/rule.md`: what the learned rule must beat, at equal memory | science | 25 min | 5 | queued |
+| 7 | 2 | Meta-learning I: the two loops (`meta.py`: K steps of the rule in one scan; the objective the soft loss of the tile the rule ends on; the meta-gradient through the K steps; Adam on the host); fresh states; the check from a non-functional start on the flat tile under the soft relay and its three controls (sign-flipped, shuffled, output-only); the η found adapts a held-out task; `Meta` beside `Descent` | science | 30 min (oversize: the docstrings) | 6 | built (`step2/meta-i`) |
+| 8 | 2 | Meta-learning II: the pool of tile states of every age (`pool.py`); the bits on the deep shape, the persisted logit a bounded counter and its depth `clip/η` in votes the first axis (every bits number so far was one vote deep); the ledger's first row; the `path_counts` window fix | science | 25 min | 7 | queued |
+| 9 | 3 | The rule as a function: a small shared g over the three factors, replacing the product in the same loops; judged against the family at equal memory; value-awareness at the rule level as an ablation (g on the fine signal, then on the per-gate signal with the gate's own inputs and output) | science | 40 min | 8 | queued |
 
 ## The progression the queue is drawn from (2026-09-08)
 
@@ -90,3 +92,12 @@ wiring for the error, writes per step. The assessment (vault thread
 `2026-09-08T105000Z-loom-corpus-audit-review`, reply of 12:20Z) was the agenda; what it names for
 later steps (resource accounting beyond the ledger; the WP2 transfer test as written, freeze the
 shared machinery and refit the state-reading part) enters at the step it names.
+
+Decided 2026-09-09 (Gabriel): the **seed is one vote per case** (the residual over the window's
+cases, summed over the outputs a gate reaches); every rate is shown with the step it implies per
+layer; **plain descent stays the floor** of every signal claim and its point at depth is recorded,
+not repaired; the depth attenuation is a magnitude problem solved by a readout at the cell (sign,
+no state; RMSprop, one accumulator), so the adjoint frame stays as landed and no wire-side carry
+scale is built; **the hand-engineered family** (Adam included) is what the learned rule must beat,
+at equal memory, and enters as its own chunk before meta-learning; chunk 4a is split into the rule
+(one canonical step) and meta-learning I.
