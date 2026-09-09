@@ -8,11 +8,15 @@ unnamed variants, because exploring the condition space is their job.
 from __future__ import annotations
 
 from collections.abc import Callable
+from itertools import islice
 from typing import NamedTuple
 
 import jax
+import jax.numpy as jnp
 
+from loom import meta, rule
 from loom.descent import fit, trajectory
+from loom.meta import Control
 from loom.signals import REFERENCE, Signal
 from loom.tile import Tile, init
 
@@ -82,3 +86,58 @@ def trace(recipe: DescentRecipe, task: Task, seed: int, every: int = 10):
         tile, x, y, r.steps, every, r.signal, lr=r.lr, window=r.window, key=key, rule=r.rule
     )
     return t, rec, x, y
+
+
+class Meta(NamedTuple):
+    """The condition of meta-learning the rule, named after the loop it runs (``meta.learn``)."""
+
+    signal: Signal  # the signal the rule is fed inside the rollout
+    steps: int  # K, the rollout's length: the horizon credit runs through
+    window: int | None  # as in Descent: every case per step, or that many drawn
+    batch: int  # states per outer step
+    hidden: tuple[int, ...]
+    outer_steps: int = 200
+    lr: float = 0.1  # the outer optimiser's step, on log η
+    eta0: float = 1e-2  # the non-functional start
+    control: Control = "none"
+    first_order: bool = False
+    arity: int = 4
+    scale: float = 1.0
+
+
+SOFT_META = Meta(Signal("soft", "relay", "entry"), steps=16, window=None, batch=16, hidden=(16, 8))
+
+
+def train(m: Meta, task: Task, seed: int) -> tuple[jax.Array, jax.Array]:
+    """Meta-learn the rule under the condition: η after every outer step, and the objective it
+    descended. The seed's other half is kept for held-out draws (``adapt``)."""
+    k_train, _ = jax.random.split(jax.random.key(seed))
+    it = meta.learn(
+        rule.init(m.eta0),
+        k_train,
+        task,
+        batch=m.batch,
+        hidden=m.hidden,
+        arity=m.arity,
+        scale=m.scale,
+        lr=m.lr,
+        signal=m.signal,
+        steps=m.steps,
+        window=m.window,
+        control=m.control,
+        first_order=m.first_order,
+    )
+    etas, losses = zip(*((rule.rate(p), J) for p, J in islice(it, m.outer_steps)), strict=True)
+    return jnp.stack(etas), jnp.stack(losses)
+
+
+def adapt(
+    m: Meta, eta: float, task: Task, seed: int, steps: int
+) -> tuple[Tile, jax.Array, jax.Array]:
+    """A fresh tile on a task drawn from the seed's held-out half, ``steps`` plain steps of the rule
+    at η: the deployed check, and at any fixed η the plain-descent baseline."""
+    _, k_held = jax.random.split(jax.random.key(seed))
+    k_task, k_tile, k_run = jax.random.split(k_held, 3)
+    x, y = task(k_task)
+    t = init(k_tile, (x.shape[1], *m.hidden, y.shape[1]), m.arity, m.scale)
+    return fit(t, x, y, steps, lr=eta, window=m.window, key=k_run, signal=m.signal), x, y
