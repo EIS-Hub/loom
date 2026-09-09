@@ -10,7 +10,8 @@ what step 2 meta-learns.
 - `descend(tile, x, y, *, lr, window, key, signal)` yields the tile after every step, without
   end; the caller sets the budget. Each step asks the signal for its per-logit arrays and
   subtracts them, scaled by the rate: Δ = −lr·s, nothing normalised, no state beside the tables.
-  The wiring never moves.
+  That step is `rule.update` at a fixed rate (`docs/rule.md`): one step, shared by the floor, the
+  rule and any instrument. The wiring never moves.
 - `fit(..., steps)` returns the tile after that many steps.
 - `trajectory(..., steps, every, signal)` fits while recording, every so many steps, the accuracy
   on the signal's own pass and on the bits.

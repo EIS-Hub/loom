@@ -14,8 +14,11 @@ from itertools import islice
 import jax
 import jax.numpy as jnp
 
+from loom.rule import update
 from loom.signals import REFERENCE, Signal, compute
 from loom.tile import Tile, accuracy
+
+RATE = 100.0  # the default step: the centre of the reference's plateau on the flat tile, batched
 
 
 def descend(
@@ -23,12 +26,13 @@ def descend(
     x: jax.Array,
     y: jax.Array,
     *,
-    lr: float = 100.0,
+    lr: float = RATE,
     window: int | None = None,
     key: jax.Array | None = None,
     signal: Signal = REFERENCE,
 ) -> Iterator[Tile]:
-    """Plain descent on the table logits, ``logits − lr·s`` per layer; the wiring stays fixed.
+    """Plain descent on the table logits, ``logits − lr·s`` per layer, which is ``rule.update`` at a
+    fixed rate: one step, shared by the floor and the rule; the wiring stays fixed.
 
     Yields the tile after every step, without end: the caller sets the budget. ``window`` is how
     many cases a step sees: all by default (the batched floor), or ``window`` cases drawn with
@@ -43,8 +47,8 @@ def descend(
     @jax.jit
     def step(logits, key):
         idx = jnp.arange(len(x)) if window is None else jax.random.choice(key, len(x), (window,))
-        s = compute(signal, Tile(logits, tile.wires), x[idx], y[idx])
-        return tuple(lg - lr * g for lg, g in zip(logits, s, strict=True))
+        t = Tile(logits, tile.wires)
+        return update(lr, t, compute(signal, t, x[idx], y[idx])).logits  # the rule's own step
 
     rng = jax.random.key(0) if key is None else key
     logits = tile.logits
