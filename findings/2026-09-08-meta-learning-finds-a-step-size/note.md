@@ -1,6 +1,6 @@
 # 2026-09-08 — Meta-learning finds a step size: the outer loop from a non-functional start, under the true signal and its controls
 
-*From the step-2 chunk 4a (loom PR #TBD) and the probes of the same date, on the flat tile, before
+*From the step-2 chunk 4a (loom PR #9) and the probes of the same date, on the flat tile, before
 the pool. The path is recorded: the objective chosen and the one not chosen, the parameterisation,
 what the controls leak, and where the window moves the step size.*
 
@@ -132,7 +132,8 @@ what a sixteen-entry table can absorb. What η means on the bits, where the desi
 final loss go flat above a threshold and the loop walk η into the thousands, is the next chunk's
 question, with the stored logit bounded.
 
-**Claims left behind.** `test_claim.py`, under
+**The claim** (`test_claim.py`, re-run on every push; its cells are the step-200 and held-out
+columns of the controls table), under
 `SOFT_META` and its `control` swaps, three recipe seeds: the loop finds a step size that adapts a
 held-out task to 1.000 in 500 plain steps; under the sign flip η ends below its start and the loss
 stays untrained; under the shuffled and output-only signals the loss stays closer to untrained
