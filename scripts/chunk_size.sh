@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Count hand-written changed lines of a chunk against its base: library source only (no tests,
-# findings, prose, lockfiles, generated json). Fails above the cap so a chunk stays readable in one sitting.
+# findings, prose, lockfiles, generated json; claims/ and probes/ are the old homes of findings/,
+# kept excluded so the 2026-09-15 move never counts). Fails above the cap so a chunk stays readable in one sitting.
 set -euo pipefail
 base="${1:?base ref}"; cap="${2:-150}"
-n=$(git diff --numstat "$base...HEAD" -- . ':!tests/**' ':!findings/**' ':!*.md' ':!*.json' ':!*.lock' \
+n=$(git diff --numstat "$base...HEAD" -- . ':!tests/**' ':!findings/**' ':!claims/**' ':!probes/**' ':!*.md' ':!*.json' ':!*.lock' \
     | awk '{ if ($1 != "-") { a += $1; d += $2 } } END { print a + d + 0 }')
 echo "hand-written changed lines: $n (cap $cap)"
 if [ "$n" -gt "$cap" ]; then
