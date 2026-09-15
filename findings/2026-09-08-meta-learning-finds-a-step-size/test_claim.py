@@ -1,4 +1,4 @@
-"""Claims of notes/2026-09-08-meta-learning-finds-a-step-size.md: from a non-functional start the
+"""The claim of note.md: from a non-functional start the
 outer loop finds a step size under the soft relay and not under its controls, and the η it finds
 adapts a fresh tile to a task the loop never saw."""
 

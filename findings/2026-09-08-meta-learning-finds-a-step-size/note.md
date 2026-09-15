@@ -13,7 +13,7 @@ never saw? Underneath: what does the η found *mean*?
 **Floor and shape.** The flat tile `(4, 16, 8, 2)` at arity 4 on 2-juntas (4 → 2), the smoke shape of
 steps 0 and 1; the signal `soft.relay.entry`, the exact adjoint to the entry, the one a soft fabric
 could carry. Plain descent is the floor since the record chunk of the same date
-(`notes/2026-09-08-the-floors-under-plain-descent.md`): the rule at a fixed η is that floor.
+(`findings/2026-09-08-the-floors-under-plain-descent/note.md`): the rule at a fixed η is that floor.
 
 **Conditions.** `SOFT_META`: K = 16 steps of the rule per rollout, every case per step, a batch of
 16 fresh tiles on 16 fresh tasks per outer step, 200 outer steps of Adam at 0.1 on log η from
@@ -25,7 +25,7 @@ Every run on the CPU.
 **The objective, and the one not chosen.** J = the soft loss on every case of the tile after K
 steps. The alternative, the mean of the online losses along the rollout (each step's window
 scored before its update), weights the steps: an early update is credited through every later
-loss, the last through none. `probes/2026-09-08-meta-objective-landscape.py` measured both across
+loss, the last through none. `2026-09-08-meta-objective-landscape.py` measured both across
 η (cells: final loss / online mean, three probe seeds, **bold** the mean over seeds):
 
 | η | W = 1, K = 64 | W = 4, K = 32 | W = all, K = 16 |
@@ -48,7 +48,7 @@ again past η ≈ 100 (0.077 → 0.081 → 0.115) while the final loss stays at 
 the early overshoot of a large step that the final tile has long recovered from. The final loss
 asks where the rule *arrives*; the mean asks how it *travels*.
 
-**The derivative path, measured** (`probes/2026-09-08-meta-gradient-paths.py`, K = 8; cells: the
+**The derivative path, measured** (`2026-09-08-meta-gradient-paths.py`, K = 8; cells: the
 full meta-gradient / the first-order one, the signal as data / a central finite difference with
 h = 0.5; three probe seeds):
 
@@ -71,7 +71,7 @@ difference disagrees on four cells of nine: the objective on the bits is piecewi
 and a difference of ±0.5 in η that crosses a flip inside the rollout measures a jump, not a slope.
 The mechanics test uses the soft relay for that reason.
 
-**The controls** (`probes/2026-09-08-controls-trajectories.py`; batch 16, K = 16, every case per
+**The controls** (`2026-09-08-controls-trajectories.py`; batch 16, K = 16, every case per
 step, 200 outer steps from η₀ = 0.01; cells: η / final loss at outer steps 50, 100, 200; then the
 η the run ends on, driven by the *true* signal for 500 plain steps on a fresh held-out 2-junta,
 hard accuracy; three probe seeds):
@@ -132,7 +132,7 @@ what a sixteen-entry table can absorb. What η means on the bits, where the desi
 final loss go flat above a threshold and the loop walk η into the thousands, is the next chunk's
 question, with the stored logit bounded.
 
-**Claims left behind.** `claims/test_2026_09_08_meta_learning_finds_a_step_size.py`, under
+**Claims left behind.** `test_claim.py`, under
 `SOFT_META` and its `control` swaps, three recipe seeds: the loop finds a step size that adapts a
 held-out task to 1.000 in 500 plain steps; under the sign flip η ends below its start and the loss
 stays untrained; under the shuffled and output-only signals the loss stays closer to untrained
