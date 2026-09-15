@@ -21,6 +21,34 @@ that $\eta$ is *learned*, from a start where it is too small to move anything, b
 `docs/meta.md`. Step 3 replaces the product by a small function $g$ of the same three factors,
 shared by every gate; later steps give $g$ a carry and a message. The rule grows in place.
 
+## The hand-engineered family
+
+Every optimiser in the literature is a short pipeline of a few transformations of the signal at the
+entry, some with memory. Written as pure functions with their state explicit, the family is what a
+learned rule must beat, and what each member costs a cell is read off its pipeline:
+
+| rule | pipeline | state per entry | arithmetic beyond multiply-add |
+|---|---|---|---|
+| `plain` | scale | none | none |
+| `sign` | sign, then scale | none | a comparison |
+| `momentum` | a running sum, then scale | one | none |
+| `rmsprop` | the signal over the root of its running square | one | a root and a division |
+| `lion` | the sign of a running mean interpolated with the signal | one | a comparison |
+| `adam` | the running mean over the root of the running square, corrected for the start | two | a root and a division |
+
+Three things the table says. The magnitude of a vote shrinks tenfold per layer on the soft pass, so
+one rate cannot serve a deep tile under `plain`; any member that erases or normalises the magnitude
+(`sign` at no state, `rmsprop` and `adam` with accumulators) gives every layer the same step, which
+is what an adaptive optimiser was silently doing in steps 0 and 1. The bound (below) and the write
+schedule (the window) are two more transformations, of the state and of time, that the literature
+does not name. And `adam` is a rule too, hand-engineered, cheaper than any learned function of a few
+thousand parameters: it is supported and benchmarked here, and the learned rule has to beat it as
+well, at whatever memory the ledger says it costs.
+
+The floor of every signal claim stays `plain`: a fixed step is the condition under which the
+question "does the smallest learnable rule, one η, converge" can be diagnosed at all. The other
+members enter a claim only as the baselines a learned rule is measured against, at equal state.
+
 ## What the rule may read
 
 Only what is an argument: the gate's table and the signal at its entries. Locality is structural,

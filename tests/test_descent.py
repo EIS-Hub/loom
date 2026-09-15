@@ -40,3 +40,11 @@ def test_one_step_of_descent_is_the_rules_update_at_that_rate():
     by_descent = next(descent.descend(t0, x, y))  # at the default rate
     by_rule = rule.update(descent.RATE, t0, signals.compute(signals.REFERENCE, t0, x, y))
     assert all(jnp.allclose(a, b) for a, b in zip(by_descent.logits, by_rule.logits, strict=True))
+
+
+def test_descent_under_a_named_rule_carries_its_state():
+    k_task, k_tile = jax.random.split(jax.random.key(3))
+    x, y = tasks.inputs(4), tasks.k_junta(k_task, 4, 2, k=2)
+    t0 = tile.init(k_tile, WIDTHS)
+    a, b = (next(descent.descend(t0, x, y, rule=r)) for r in ("plain", "sign"))
+    assert all(not jnp.array_equal(p, q) for p, q in zip(a.logits, b.logits, strict=True))

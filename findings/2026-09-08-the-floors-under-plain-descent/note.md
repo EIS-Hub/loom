@@ -27,7 +27,7 @@ on 6-bit addition and 2-juntas (6 → 4). Rates ×3 from 1 to 100000 (old units;
 the task's outputs), hard accuracy at 500 and 2000 steps on the flat tile, 1000, 2000 and 4000 on
 the deep one, three probe seeds; the pins re-verified under the recipe seeds. Probes:
 `2026-09-08-plain-descent-{flat,deep,rate-each-signal-wants,recipe-seeds-at-depth,deploy-gap-at-depth}.py`,
-`2026-09-09-descent-with-a-readout-at-depth.py`. Device: CPU. A *band* is the range of rates at
+`findings/2026-09-09-a-readout-at-the-cell-makes-the-deep-floor-a-band/2026-09-09-descent-with-a-readout-at-depth.py`. Device: CPU. A *band* is the range of rates at
 which every probe seed reaches 1.000 within the budget; a *point* is a band one grid step wide.
 "Straight-through" is the literature's name for the cell `hard.autodiff.logit`, the hard relay to
 the logit; the tables name the cell.
@@ -97,7 +97,7 @@ step per layer was measured: the smell was a tenfold attenuation per layer on th
 Adam's per-entry normalisation had hidden. (5) Whether the transport could carry a non-vanishing
 magnitude was tried on the wire (a sign carry, a conserving carry, the error per path: the sign carry
 gives a band, kept out of the repo) and then at the cell
-(`2026-09-09-descent-with-a-readout-at-depth.py`): on the deep tile with the relay to the
+(`findings/2026-09-09-a-readout-at-the-cell-makes-the-deep-floor-a-band/2026-09-09-descent-with-a-readout-at-depth.py`): on the deep tile with the relay to the
 entry, plain descent is the point 300 per vote; the **sign of the vote, no state, reaches on every
 seed from 0.01 to 0.3 logit per step**; RMSprop (one accumulator) from 0.003 to 0.3; Adam (two)
 0.01 to 1; Lion 0.03 to 0.3 with a 0.999; momentum alone never. The attenuation is a magnitude
