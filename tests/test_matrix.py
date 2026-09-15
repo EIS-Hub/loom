@@ -1,5 +1,5 @@
 """The combinatorial test, mechanics half: every substrate × signal cell runs and yields a
-well-shaped, finite signal. Whether a cell reaches its target is a claim (claims/), not a test."""
+well-shaped, finite signal. Whether a cell reaches its target is a claim (findings/), not a test."""
 
 import jax
 import jax.numpy as jnp

@@ -1,5 +1,5 @@
 """Probe: why does the blind split train on the bits where the exact relay does not, when at
-initialisation neither predicts a single flip's effect (probes/2026-09-07-flip-credit.py)? Both
+initialisation neither predicts a single flip's effect (2026-09-07-flip-credit.py)? Both
 hard signals under Adam, plain SGD (rate normalised so the mean nonzero step is 0.05 at
 initialisation, and a fifth and five times that) and sign-SGD; hard accuracy, the fraction of
 logits with a nonzero signal and the number of table bits flipping per step, along training."""

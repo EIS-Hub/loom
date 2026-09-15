@@ -19,7 +19,7 @@ accuracy 1.000 on the same tiles (no deploy gap once trained), and 1.000 on two-
 carry. Under `ONLINE_FLOOR`, hard accuracy 1.000 on 2-juntas for three seeds: descent adapts the
 tables seeing one case at a time.
 
-**Claims left behind.** `claims/test_2026_09_03_one_tile_computes.py`: the junta and the addition
+**Claims left behind.** `test_claim.py`: the junta and the addition
 under the soft floor with no deploy gap; the junta online.
 
 **What would change it.** A shape where depth is forced (arity below the input width), where a

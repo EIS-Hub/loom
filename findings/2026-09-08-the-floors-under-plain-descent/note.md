@@ -97,7 +97,7 @@ step per layer was measured: the smell was a tenfold attenuation per layer on th
 Adam's per-entry normalisation had hidden. (5) Whether the transport could carry a non-vanishing
 magnitude was tried on the wire (a sign carry, a conserving carry, the error per path: the sign carry
 gives a band, kept out of the repo) and then at the cell
-(`probes/2026-09-09-descent-with-a-readout-at-depth.py`): on the deep tile with the relay to the
+(`2026-09-09-descent-with-a-readout-at-depth.py`): on the deep tile with the relay to the
 entry, plain descent is the point 300 per vote; the **sign of the vote, no state, reaches on every
 seed from 0.01 to 0.3 logit per step**; RMSprop (one accumulator) from 0.003 to 0.3; Adam (two)
 0.01 to 1; Lion 0.03 to 0.3 with a 0.999; momentum alone never. The attenuation is a magnitude
@@ -114,7 +114,7 @@ band survives on other tasks and shapes (one tile, one task, three seeds).
 (new). Unchanged apart from the recipe they name: the three step-0 claims, the five straight-through
 claims, the four direct-feedback claims, two of the transports claims. Re-stated: the relay reaches
 where the blind split stalls, under `DEEP_RELAY`. Retracted and re-earned: the deep addition floor,
-as above. New (`claims/test_2026_09_08_the_floors_under_plain_descent.py`): the reference within two
+as above. New (`test_claim.py`): the reference within two
 bits and the relay to the entry at 1.000; the same signal short under the reference's rate and at the
 target under its own; the hard relay to the logit above 0.8 at depth where the relay to the entry is at chance;
 2-bit addition under the hard floor. Nineteen claims, green; 24 s at `-n 8` on this CPU.
