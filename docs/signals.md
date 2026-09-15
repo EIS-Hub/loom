@@ -180,7 +180,7 @@ variables before the readout, $e_{g,b}$, one number per gate and case, are the *
 what a wire or a bus carries, the best a gate can know before its own address and slope turn it
 into a per-entry move; `signals.gate_errors` returns them for any `via` inside the frame, and
 `to="gate"` is that signal broadcast to every entry, address-blind. Descent on it fails, as a
-table whose entries all move together can only learn a bias (`probes/2026-09-08-per-gate-descent.py`);
+table whose entries all move together can only learn a bias (`findings/2026-09-07-direct-feedback-and-the-flip-credit/2026-09-08-per-gate-descent.py`);
 its use is downstream: a rule that reads it with its own inputs must reconstruct the address
 (step 3), and its correlation with each input line across cases is the router of step 6.
 
@@ -198,7 +198,7 @@ layers, wrong for a few percent of the pairs at the input layer). Where paths re
 composed credit can err both ways: a line branching into two buffers that meet at an AND has zero
 sensitivity along each path alone, so the credit sees nothing though flipping the line fixes the
 output, and with both paths live it counts the one output twice
-(`probes/2026-09-08-flip-credit-counterexample.py`, the corpus audit's example run against the
+(`findings/2026-09-07-direct-feedback-and-the-flip-credit/2026-09-08-flip-credit-counterexample.py`, the corpus audit's example run against the
 code). The signal is the relay's plus half the reach in the direction of the flip, $(1 - 2H[a])$:
 exact for one flip where the wiring does not reconverge, not a gradient, and a bits quantity (no
 soft cell).
@@ -225,7 +225,7 @@ sign. At initialisation the two gradients are nearly orthogonal and the one on t
 times sparser; they converge as the soft tables saturate. Being piecewise constant, the hard-pass
 gradient changes sign when a table entry crosses one half, and at the soft learning rate a logit
 marches to the threshold, flips, and marches back: descent on the hard pass wants a narrower band
-of steps than the soft pass (measured under plain descent: `notes/2026-09-08-the-floors-under-plain-descent.md`).
+of steps than the soft pass (measured under plain descent: `findings/2026-09-08-the-floors-under-plain-descent/note.md`).
 
 ## The transports, and what they cost
 
@@ -256,10 +256,10 @@ question.
 ## What the transports do at depth
 
 Scored against the reference and run under descent on a four-layer tile of arity-3 gates on
-6-bit addition (`notes/2026-09-07-the-relay-is-autodiff-and-the-bits-learn-by-alignment.md`,
-`notes/2026-09-07-direct-feedback-and-the-flip-credit.md`; those two notes ran Adam, and every
+6-bit addition (`findings/2026-09-07-the-relay-is-autodiff-and-the-bits-learn-by-alignment/note.md`,
+`findings/2026-09-07-direct-feedback-and-the-flip-credit/note.md`; those two notes ran Adam, and every
 number below that came from them is re-derived under plain descent, Δ = −lr·s, in
-`notes/2026-09-08-the-floors-under-plain-descent.md`, which is where the current numbers are):
+`findings/2026-09-08-the-floors-under-plain-descent/note.md`, which is where the current numbers are):
 
 - **On the soft pass** the relay *is* the reference and reaches the target with the partial to
   the logit or to the entry, each at its own rate: without σ′ the signal is larger, and under

@@ -7,13 +7,14 @@ what step 2 meta-learns.
 
 ## Three functions, one loop
 
-- `descend(tile, x, y, *, lr, window, key, signal)` yields the tile after every step, without
-  end; the caller sets the budget. Each step asks the signal for its per-logit arrays and
-  subtracts them, scaled by the rate: Δ = −lr·s, nothing normalised, no state beside the tables.
-  That step is `rule.update` at a fixed rate (`docs/rule.md`): one step, shared by the floor, the
-  rule and any instrument. The wiring never moves.
-- `descend(..., rule=)` runs any member of the hand-engineered family (`docs/rule.md`) at the
-  given rate, carrying its state; `plain` is the floor.
+- `descend(tile, x, y, *, lr, window, key, signal, rule)` yields the tile after every step,
+  without end; the caller sets the budget. Each step asks the signal for its per-logit arrays and
+  hands them to a named rule of the hand-engineered family (`docs/rule.md`), `plain` by default:
+  Δ = −lr·s, nothing normalised, no state beside the tables, the floor of every claim. That step
+  is `rule.apply` at a fixed rate (`rule.update` when the rule is plain): one step, shared by the
+  floor, the rule and any instrument. Another member (`rule="sign"`, `"rmsprop"`, …) runs the same
+  loop with its own state carried along, as a baseline and never as the floor. The wiring never
+  moves.
 - `fit(..., steps)` returns the tile after that many steps.
 - `trajectory(..., steps, every, signal)` fits while recording, every so many steps, the accuracy
   on the signal's own pass and on the bits.
@@ -48,4 +49,4 @@ momentum carries one case's vote into the cases that follow, so the online floor
 online regime. Step 2's rule is exactly −η·s with η learned, so the plain update is the only
 honest baseline from here on, and the standard optimiser never enters a signal claim again. The
 rates and budgets that make a claim are not here but in named recipes (`docs/recipes.md`); the
-numbers behind the change are in `notes/2026-09-08-the-floors-under-plain-descent.md`.
+numbers behind the change are in `findings/2026-09-08-the-floors-under-plain-descent/note.md`.

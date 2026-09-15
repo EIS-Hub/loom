@@ -23,8 +23,8 @@ jobs:
         if: github.event_name == 'pull_request' && !contains(join(github.event.pull_request.labels.*.name, ','), 'oversize-approved')
         run: scripts/chunk_size.sh "origin/${{ github.base_ref }}" 150
 
-  claims:
-    # Empirical claims under named recipes: a red here is a finding, answered by a note or a fix.
+  findings:
+    # Every finding's claim under named recipes: a red here is a finding, answered by a note or a fix.
     runs-on: ubuntu-latest
     env:
       JAX_PLATFORMS: cpu
@@ -33,4 +33,4 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.13" }
       - run: pip install -e ".[dev]"
-      - run: pytest claims -m "not slow" -n 2
+      - run: pytest findings -m "not slow" -n 2

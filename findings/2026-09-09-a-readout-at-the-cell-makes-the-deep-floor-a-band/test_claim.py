@@ -1,4 +1,4 @@
-"""Claims of notes/2026-09-09-a-readout-at-the-cell-makes-the-deep-floor-a-band.md: at depth the
+"""The claim of note.md: at depth the
 plain rule reaches the target at one rate and not a decade below; the sign of the vote (no state)
 and RMSprop (one accumulator) reach at both."""
 

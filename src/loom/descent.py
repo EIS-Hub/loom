@@ -43,7 +43,7 @@ def descend(
     address and, to the logit, σ′, so a rate is in logit units per unit vote, and a signal without
     σ′ wants a smaller one; which rate each signal wants is measured, never
     assumed (the default is the centre of the reference's plateau on the flat tile, batched:
-    ``notes/2026-09-08-the-floors-under-plain-descent.md``).
+    ``findings/2026-09-08-the-floors-under-plain-descent/note.md``).
     """
 
     @jax.jit

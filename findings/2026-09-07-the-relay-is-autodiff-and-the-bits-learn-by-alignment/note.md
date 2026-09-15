@@ -10,7 +10,7 @@ on each pass, with and without σ′?
 
 **The floor, and how the shape was chosen.** The reference must reach the target before anything
 is scored against it. The first deep shape tried, `(6, 24, 12, 4)` at arity 3 on 6-bit addition,
-left the reference at 0.93–0.98 hard accuracy: not a floor. `probes/2026-09-07-deep-shape-search.py`
+left the reference at 0.93–0.98 hard accuracy: not a floor. `2026-09-07-deep-shape-search.py`
 swept widths and arity (hard accuracy at 1000 / 2000 steps, Adam 0.1, three seeds):
 
 | widths | arity 3 | arity 4 |
@@ -34,7 +34,7 @@ by 2000 steps (0.996 at 1000 on one seed) and the relay without σ′ by 3250 on
 signals, not the clock, and dropping σ′ cost time on the last bit once. The probes also visited
 rates 0.1, 0.02 and 0.005, budgets to 5000 steps, plain and sign SGD, and throttled updates.
 
-**Measured at initialisation** (`probes/2026-09-07-signal-ladder-by-layer.py`, three seeds; per
+**Measured at initialisation** (`2026-09-07-signal-ladder-by-layer.py`, three seeds; per
 layer, input → output: nonzero fraction / cosine with the reference / sign agreement where both
 are nonzero):
 
@@ -60,7 +60,7 @@ wash toward one half, so the reference spreads over a gate's entries while the b
 The fraction of back-edges carrying exactly zero (a gate insensitive to that input at the other
 inputs' values): 0.00 in every layer on the soft pass, 0.47–0.51 on the bits.
 
-**Measured in training** (`probes/2026-09-07-descent-by-transport.py`; hard accuracy at step 500 /
+**Measured in training** (`2026-09-07-descent-by-transport.py`; hard accuracy at step 500 /
 2000, seeds 0–2):
 
 | signal | rate | seed 0 | seed 1 | seed 2 | **mean ± sd at 2000** |
@@ -85,7 +85,7 @@ split trains to 0.84–0.98 and never to 1.000 in any of its runs.
 **The path to the why.**
 
 1. *Dead paths?* Half the back-edges on the bits carry zero, so a gate the circuit does not
-   currently listen to gets no signal and cannot be recruited. `probes/2026-09-07-flip-credit.py`:
+   currently listen to gets no signal and cannot be recruited. `2026-09-07-flip-credit.py`:
    gates the relayed error never reaches over the whole batch are 26–29 % in the hidden layers on
    the bits against 15–25 % on the soft pass, and the relay reaches nearly as many entries as the
    blind split (107 against 117 at the input layer). Real, and not the story.
@@ -95,22 +95,22 @@ split trains to 0.84–0.98 and never to 1.000 in any of its runs.
    layer including the output one. The relay is the first-order term of a two-term difference: on
    the bits the second term, the cost of breaking outputs that were right, is as large as the first,
    and a signal seeded by the residual cannot see it, since a right output has zero residual.
-3. *Thrash?* `probes/2026-09-07-bits-dynamics.py`: under Adam the relay flips 60 table bits per
+3. *Thrash?* `2026-09-07-bits-dynamics.py`: under Adam the relay flips 60 table bits per
    step out of 672, under plain or sign SGD 160–270; the blind split 3–20. But
-   `probes/2026-09-07-bits-thrash.py`: updating a random 2 % of the logits per step makes the
+   `2026-09-07-bits-thrash.py`: updating a random 2 % of the logits per step makes the
    relay's signal 0.99 consistent from step to step with 2.8 flips per step, and accuracy stays at
    chance (0.50–0.54). Consistent and wrong, not noisy.
-4. *Who learns?* `probes/2026-09-07-bits-who-learns.py`: the two hard signals are identical at the
+4. *Who learns?* `2026-09-07-bits-who-learns.py`: the two hard signals are identical at the
    output layer, so any difference is what their hidden updates do. Hidden layers frozen, both give
    0.52–0.61. The blind split's hidden updates lift it to 0.76–0.89 at 2 %, 0.81–0.88 at 10 %,
    0.84–0.94 free; the relay's lift it to nothing at any fraction.
-5. *Alignment.* `probes/2026-09-07-bits-alignment.py`: the blind split carries every error back as
+5. *Alignment.* `2026-09-07-bits-alignment.py`: the blind split carries every error back as
    if each gate's sensitivity to each input were +1. Under it, the fraction of nonzero hard
    sensitivities that are positive rises from 0.44–0.61 at initialisation to 0.66 / 0.72 / 0.71 /
    0.93 (input → output) by step 2000, with accuracy 0.90; under the relay it stays at 0.43–0.56.
    The circuit makes the blind feedback right.
 
-6. *What the votes say.* `probes/2026-09-07-vote-coherence.py`: for each entry, how much the
+6. *What the votes say.* `2026-09-07-vote-coherence.py`: for each entry, how much the
    cases that address it agree, |Σ e| / Σ |e| over those cases. On the bits the relay's votes are
    unanimous in every layer (1.00) and the blind split's are split (0.53–0.76 in the hidden
    layers, 1.00 at the output layer). Unanimous because on the bits the relay can only say one
@@ -150,14 +150,14 @@ thing. One intuition was tried and dropped on the way: that the relay's votes ca
 
 **Also found.** The two probes on the first shape were kept; every conclusion held there. Arity 3
 was chosen so that depth bites (with 6 inputs a gate of arity 4 sees more of them); asked whether
-the finding is an artefact of it, `probes/2026-09-07-arity-4-check.py` reran the transports at
+the finding is an artefact of it, `2026-09-07-arity-4-check.py` reran the transports at
 arity 4 on the four-layer shape and on `(6, 32, 16, 4)`: on the bits the exact relay stays at
 chance (0.47–0.65) and the blind split trains, on four of six runs to 1.000. What arity changes is
 the soft pass: at arity 4 the blind split reaches the target on some seeds (1.000, 1.000, 0.977 on
 the four-layer shape), so "the blind split stalls" measures how hard depth bites, and arity 3 is
 where it bites cleanly. `Recipe.arity` stays 4 by default; only the two deep recipes say 3.
 
-**Claims left behind.** `claims/test_2026_09_07_transports.py`: addition under the deep floor; the
+**Claims left behind.** `test_claim.py`: addition under the deep floor; the
 uniform split at chance against the reference from the first hop and exact at the output layer;
 descent on the relay without σ′ reaches the target where the blind split stalls; on the bits the
 exact relay is at chance where the blind split is well clear of it.
@@ -175,7 +175,7 @@ blind split, and it learns by alignment, not by gradient.
 
 **Audited (2026-09-08).** An adversarial audit reran this note on the CPU (its tables were
 GPU-run before the probes were pinned) and attacked every statement; its experiments are the
-`probes/2026-09-08-audit-*.py` files, its verdicts in the next note. What held: the relay is
+`findings/2026-09-07-direct-feedback-and-the-flip-credit/2026-09-08-audit-*.py` files, its verdicts in the next note. What held: the relay is
 autodiff to 1e-7 on both passes, on windows and on saturated tiles; the exact relay never trains
 on the bits at this depth under any rate, optimiser, init scale or task tried, and chance is the
 majority class, 0.516; the votes are unanimous "flip" in every layer; the hidden updates carry the

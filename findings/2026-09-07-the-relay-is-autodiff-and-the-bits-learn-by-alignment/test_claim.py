@@ -1,4 +1,4 @@
-"""Claims of notes/2026-09-07-the-relay-is-autodiff-and-the-bits-learn-by-alignment.md: the three
+"""Claims of note.md: the three
 transports on a shape where depth is forced (6-input addition on four layers of arity 3)."""
 
 from loom import recipes, signals, tasks, tile
