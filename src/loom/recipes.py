@@ -34,7 +34,8 @@ class DescentRecipe(NamedTuple):
 # Rates sit at the centre of each signal's working plateau on the probe seeds and budgets at twice
 # the first step at which every probe seed reached the target, except at depth, where the plain
 # reference has no rate that reaches on every tile and the budget is the tables' full 4000, so the
-# claim is about the landscape, not the clock (notes/2026-09-08-the-floors-under-plain-descent.md).
+# claim is about the landscape, not the clock
+# (findings/2026-09-08-the-floors-under-plain-descent/note.md).
 SOFT_FLOOR = DescentRecipe(REFERENCE, lr=50.0, steps=400, window=None, hidden=(16, 8))
 HARD_FLOOR = DescentRecipe(Signal("hard"), lr=150.0, steps=3000, window=None, hidden=(16, 8))
 ONLINE_FLOOR = DescentRecipe(REFERENCE, lr=50.0, steps=500, window=1, hidden=(16, 8))

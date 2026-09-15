@@ -2,7 +2,7 @@
 
 *From round 3 of the step-1 chunk (loom PR #4), under the adjoint frame; the probes of the same
 date; audited adversarially the same evening and corrected on 2026-09-08 (the audit's experiments
-are the `probes/2026-09-08-audit-*.py` files). The path is recorded, including a bug and two
+are the `2026-09-08-audit-*.py` files). The path is recorded, including a bug and two
 readings that fell.*
 
 **Question.** Chunk 3 read the bits' failure of the exact relay as "flip, never stay", and the
@@ -23,13 +23,13 @@ layer too, whereas in direct feedback alignment an output gate reads its own res
 (`random_signs`, then called `feedback`, returns the identity for the output layer; a test asserts direct feedback equals the
 relay at the output layer). The numbers below are after the fix.
 
-**Measured at initialisation** (`probes/2026-09-07-signal-ladder-by-layer.py`, sign agreement
+**Measured at initialisation** (`findings/2026-09-07-the-relay-is-autodiff-and-the-bits-learn-by-alignment/2026-09-07-signal-ladder-by-layer.py`, sign agreement
 with the reference per layer, input → output): direct feedback 0.48 / 0.46 / 0.55 / 1.00 on the
 soft pass and 0.49 / 0.48 / 0.47 / 0.54 on the bits; the flip credit 0.55 / 0.54 / 0.57 / 0.52 on
 the bits. Neither resembles the reference anywhere but the output layer, like every blind
 transport.
 
-**Measured in training** (`probes/2026-09-07-descent-by-transport.py`; hard accuracy at 500 /
+**Measured in training** (`findings/2026-09-07-the-relay-is-autodiff-and-the-bits-learn-by-alignment/2026-09-07-descent-by-transport.py`; hard accuracy at 500 /
 2000 steps, seeds 0–2):
 
 | signal | rate | seed 0 | seed 1 | seed 2 | **mean ± sd at 2000** |
@@ -51,7 +51,7 @@ quantity, and the soft cells were removed from `CELLS`.
 failure as the absence of "stay" votes and expected that restoring them would not be enough,
 because the credit still changes with every bit around it. It is enough: the relay plus the cost
 of the outputs a flip would break reaches 0.86–0.94, level with the blind split. And it stops:
-accuracy is identical at 500 and 2000 steps. `probes/2026-09-07-flip-fixed-point.py`: after
+accuracy is identical at 500 and 2000 steps. `2026-09-07-flip-fixed-point.py`: after
 training, zero entries have a credit pointing toward a flip and zero bits flip per step over the
 last 200, on every probe seed (under the recipe's seeds, zero on two and three entries out of 672
 on the third, still settling at 2000 steps); under the blind split 60–135 entries are still pushed
@@ -59,7 +59,7 @@ and 2–5 bits flip per step. It rests at 0.88–0.92.
 
 *Corrected by the audit.* Two things this note first said about it were wrong. (1) The reach is
 not "the number of outputs a flip changes" but the number of live paths to them
-(`probes/2026-09-08-audit-reach-and-exactness.py`): equal to the outputs changed for 90–93 % of
+(`2026-09-08-audit-reach-and-exactness.py`): equal to the outputs changed for 90–93 % of
 (case, line) pairs at the input layer and 96–100 % above it, larger where paths reconverge, up to
 5 with four outputs. So the credit is exact for one flip in the upper layers (88–100 % of entries,
 sign 95–100 %) and inexact at the input layer (67–78 %, sign 88–98 %). At the end state an
@@ -68,14 +68,14 @@ oracle continuation gains 0.004: the fixed point holds in substance. The corpus 
 same day (Codex, read 2026-09-08) supplied the mechanism in the other direction: where a line
 branches into two paths that reconverge, the credit can *under*-estimate as well, since each path
 alone can have zero sensitivity while flipping the line moves both; its counterexample runs
-against the code in `probes/2026-09-08-flip-credit-counterexample.py` (predicted 0, actual −½;
+against the code in `2026-09-08-flip-credit-counterexample.py` (predicted 0, actual −½;
 and with both paths live, predicted −1, actual −½). (2) It is not "greedy
 coordinate descent one entry at a time": the audit's true greedy single-flip descent on the exact
 loss change stops lower (0.852 / 0.875) than the credit under Adam on the same tiles
 (0.883 / 0.902), and greedy descent on the credit itself cycles. Adam's many simultaneous early
 flips are part of why it lands higher.
 
-*The cost term is what does it* (`probes/2026-09-08-audit-flip-credit-controls.py`, recipe seeds):
+*The cost term is what does it* (`2026-09-08-audit-flip-credit-controls.py`, recipe seeds):
 the relay alone 0.48–0.51; the relay plus a constant "stay" bias of 0.25 to 2 per case 0.47–0.73;
 plus the blind reach (path counts, no sensitivity) 0.64–0.72; plus the local case count
 0.71–0.80; the uniform split plus the reach 0.68–0.81; the flip credit 0.867–0.887. No
@@ -86,7 +86,7 @@ regulariser-shaped substitute matches it.
 relay's 0.50; 0.74–0.83 on the soft pass against 0.86–0.94. This note first read the failure as
 random signs asking a gate to affect two outputs through one shared path with opposite signs, and
 credited the wiring-shaped split with asking every gate to "be monotone". The audit refuted both
-(`probes/2026-09-08-audit-feedback-support.py`, bits, three seeds):
+(`2026-09-08-audit-feedback-support.py`, bits, three seeds):
 
 | fixed feedback | seeds 0 · 1 · 2 |
 |---|---|
@@ -112,7 +112,7 @@ in this whole set; none of eighteen recipe-seed runs did.
 **What "alignment" measures.** The alignment probes score the circuit's actual Jacobian against
 the feedback given; that quantity rises and holds (0.81 / 0.89 / 0.96 by 1000 steps under the
 wiring-shaped split). Feedback alignment's own quantity, the delivered hidden signal against the
-true adjoint (`probes/2026-09-08-audit-alignment-cause.py`), rises to 0.59–0.91 mid-training and
+true adjoint (`2026-09-08-audit-alignment-cause.py`), rises to 0.59–0.91 mid-training and
 falls back to 0.25–0.64 by 2000 steps while accuracy keeps rising: the delivered signal aligns on
 the way and de-aligns on the residual errors, which is what a ceiling short of the target looks
 like. The same probe settles cause against side effect: with the output layer always exact,
@@ -120,9 +120,9 @@ hidden layers frozen give 0.52–0.61, driven by noise 0.56–0.60, by noise on 
 0.54–0.59, by the signal's magnitudes with shuffled signs 0.52–0.61, by the signal 0.84–0.94; a
 hidden stack initialised monotone with output-only learning gives 0.54–0.62. Neither random drift
 nor monotonicity substitutes for the hidden signal, and "monotone" was an artefact of the carry
-being +1.
+being +1. The round-3 measurement of the same alignment, the sign agreement between each fixed feedback and the true Jacobian per layer along training, is `2026-09-07-alignment-to-any-feedback.py`; the audit's probe supersedes it.
 
-**Where the relay stops** (`probes/2026-09-08-audit-depth-boundary.py`). The majority class of
+**Where the relay stops** (`2026-09-08-audit-depth-boundary.py`). The majority class of
 6-bit addition is 0.516. With one hidden layer of 32 gates the exact relay is the *better* bits
 signal (0.63–0.81 against the blind split's 0.56–0.67); with two hidden layers it has already
 failed (0.45–0.56 against 0.72–0.76); at four layers 0.50–0.54 at Adam 0.005 and 0.001 for 4000
@@ -134,7 +134,7 @@ means one hidden layer.
 **Also found (2026-09-08).** The per-gate signal, the adjoint variable before the readout, is now
 exposed (`signals.gate_errors`) and has its own cell, `to="gate"`: the gate's summed error broadcast to
 every entry, address-blind. Under descent it does not leave chance, as it cannot: a table whose
-entries all move together learns a bias (`probes/2026-09-08-per-gate-descent.py`; soft.relay.gate
+entries all move together learns a bias (`2026-09-08-per-gate-descent.py`; soft.relay.gate
 0.48–0.53 where soft.relay.entry reaches 1.000, hard.uniform.gate 0.49–0.56 where the entry cell
 reaches 0.84–0.94, hard.reachable.gate 0.50–0.52). Its use is downstream: it is what a wire or a
 bus carries, and a rule reading it with the gate's own inputs must reconstruct the address, the
@@ -147,7 +147,7 @@ split's level; the signs of a fixed feedback do not matter; the hidden updates c
 learning; the exact relay never trains past one hidden layer. Read, not tested: what the
 wiring-shaped ceiling (0.84–0.98, the target once in twenty-one masked runs) is made of.
 
-**Claims left behind.** `claims/test_2026_09_07_direct_feedback_and_the_flip_credit.py`: the flip
+**Claims left behind.** `test_claim.py`: the flip
 credit comes to rest where the blind split keeps pushing (ten times fewer entries still pushed),
 above 0.8; on the bits the blind transports order as wiring-shaped, random, none, with the relay
 within 0.1 of chance; restricting the bus to reachable outputs lifts it above the unmasked bus and

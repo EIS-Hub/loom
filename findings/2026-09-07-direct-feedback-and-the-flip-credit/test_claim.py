@@ -1,4 +1,4 @@
-"""Claims of notes/2026-09-07-direct-feedback-and-the-flip-credit.md: on the bits at depth, the
+"""Claims of note.md: on the bits at depth, the
 flip credit reaches a fixed point, and the blind transports order as wiring-shaped, random, none."""
 
 import jax.numpy as jnp

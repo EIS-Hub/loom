@@ -19,9 +19,10 @@ The programme map (the two axes, the three steps, where every repo sits) is the 
   parameter the local partial is taken (the logit, or the stored entry). One frame, the adjoint method. Signals, rules and regimes
   are pure functions on local arrays; composition is plain arguments; locality is structural: what is
   not an argument cannot be read.
-- **Tests are mechanics; claims are science.** `tests/` asserts what the code does, `claims/` asserts
-  one qualitative statement per note under a **named recipe**, `notes/` holds the findings and their
-  numbers, `probes/` the scripts behind them. The method page is `docs/recipes.md`.
+- **Tests are mechanics; findings are science.** `tests/` asserts what the code does. `findings/` holds
+  one dated directory per finding: its note with the numbers and the path, the probes that printed
+  them, and `test_claim.py`, the one statement that must keep holding under a **named recipe**, re-run
+  on every push. The method page is `docs/recipes.md`.
 - **No ladder, no rungs.** The step number is the landmark and never moves.
 
 ## The steps
@@ -50,7 +51,7 @@ later, tag-pinned). Ladders, registries, result tables. Mesh, engram, context, u
 ```bash
 pip install -e ".[dev]" && pre-commit install
 pytest                # the mechanics: the merge gate
-pytest claims         # the empirical claims under named recipes; -m slow for the long ones
+pytest findings       # every finding's claim under named recipes; -m slow for the long ones
 pyright --pythonpath "$(which python)"   # so it sees the env's jax
 ```
 
