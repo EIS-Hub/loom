@@ -48,4 +48,4 @@ momentum carries one case's vote into the cases that follow, so the online floor
 online regime. Step 2's rule is exactly −η·s with η learned, so the plain update is the only
 honest baseline from here on, and the standard optimiser never enters a signal claim again. The
 rates and budgets that make a claim are not here but in named recipes (`docs/recipes.md`); the
-numbers behind the change are in `notes/2026-09-08-the-floors-under-plain-descent.md`.
+numbers behind the change are in `findings/2026-09-08-the-floors-under-plain-descent/note.md`.

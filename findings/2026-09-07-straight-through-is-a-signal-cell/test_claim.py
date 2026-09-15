@@ -1,4 +1,4 @@
-"""Claims of notes/2026-09-07-straight-through-is-a-signal-cell.md: descent on the hard pass."""
+"""Claims of note.md: descent on the hard pass."""
 
 import jax.numpy as jnp
 import pytest

@@ -1,4 +1,4 @@
-"""Claims of notes/2026-09-08-the-floors-under-plain-descent.md: what holds once descent is the
+"""Claims of note.md: what holds once descent is the
 plain update, Δ = −lr·s, with every rate and budget re-pinned."""
 
 from loom import recipes, tasks, tile

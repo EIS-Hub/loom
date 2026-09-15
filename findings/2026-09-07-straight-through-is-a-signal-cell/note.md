@@ -12,7 +12,7 @@ previous note).
 **Conditions.** `SOFT_FLOOR`; `HARD_FLOOR` (the same autodiff on the bits, Adam at 0.02 for 2000
 steps); and, in the sweep, unnamed variants of both over rate × budget.
 
-**Measured, at initialisation** (`probes/2026-09-07-soft-vs-bits-gradient.py`, random tiles,
+**Measured, at initialisation** (`2026-09-07-soft-vs-bits-gradient.py`, random tiles,
 shape `(4, 16, 8, 2)`, 2-juntas): the two gradients are nearly orthogonal and the one on the bits
 touches a fraction of the logits; where both are nonzero they agree in sign a little more than half
 the time.
@@ -23,7 +23,7 @@ the time.
 | 1 | 0.68 | 0.26 | +0.00 | 0.59 |
 | 2 | 0.69 | 0.25 | +0.17 | 0.56 |
 
-**Measured, in training** (`probes/2026-09-07-straight-through-sweep.py`): on the soft pass every
+**Measured, in training** (`2026-09-07-straight-through-sweep.py`): on the soft pass every
 condition reaches 1.000. On the bits at the soft rate (0.1), hard accuracy after 500 steps is
 0.594, 0.719 and 1.000 for the three seeds, and after 2000 steps 0.688, 1.000 and 1.000: two of
 three seeds miss at the short budget, one at the long, and the first seed *worsens* with more
@@ -44,7 +44,7 @@ to the threshold, flips, and marches back, which is the chattering above.
 **Also found.** `hard + soft − stop_gradient(soft)` is not exactly `hard` in float32; the zero must
 be parenthesised. A mechanistic test now asserts the equality.
 
-**Claims left behind.** `claims/test_2026_09_07_straight_through.py`: the junta under the bits
+**Claims left behind.** `test_claim.py`: the junta under the bits
 floor; no deploy gap at any step on the bits; the gap opens then closes on the soft pass; every
 matrix cell reaches its target under its recipe.
 

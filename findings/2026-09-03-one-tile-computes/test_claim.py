@@ -1,4 +1,4 @@
-"""Claims of notes/2026-09-03-one-tile-computes.md: one tile reaches its target by descent."""
+"""Claims of note.md: one tile reaches its target by descent."""
 
 from loom import recipes, tasks, tile
 from loom.recipes import ONLINE_FLOOR, SOFT_FLOOR
