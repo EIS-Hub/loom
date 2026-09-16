@@ -1,7 +1,8 @@
 """Mechanics of meta-learning, at a handful of steps on the flat tile: the meta-gradient matches a
-finite difference; first order is a no-op on the bits and not on the soft pass; at η = 0 the
-objective is the untrained loss; the controls do what they say; members are distinct; the outer
-loop yields after every step and moves η."""
+finite difference; first order is a no-op on the ``entry`` cells of the hard pass, not on the soft
+pass and not on the straight-through cell, and is the hard pass's default; at η = 0 the objective
+is the untrained loss; the controls do what they say; members are distinct; the outer loop yields
+after every step, moves η, and records the deployed loss beside the objective."""
 
 import itertools
 
@@ -15,6 +16,7 @@ from loom.signals import Signal
 WIDTHS = (4, 16, 8, 2)
 SOFT = Signal("soft", "relay", "entry")
 BITS = Signal("hard", "uniform", "entry")
+STE = Signal("hard", "relay", "logit")  # σ′ of the stored logit kept on the hard pass
 
 
 def setup(seed):
@@ -37,12 +39,23 @@ def test_the_meta_gradient_matches_a_finite_difference():
     assert jnp.isclose(by_autodiff, by_difference, rtol=1e-2)
 
 
-def test_first_order_is_a_no_op_on_the_bits_and_not_on_the_soft_pass():
+def test_first_order_is_a_no_op_on_the_entry_cells_of_the_hard_pass_only():
     t, x, y, k = setup(1)
-    for sig, same in ((BITS, True), (SOFT, False)):
-        full = jax.grad(objective)(30.0, t, x, y, k, signal=sig)
+    for sig, same in ((BITS, True), (SOFT, False), (STE, False)):
+        full = jax.grad(objective)(30.0, t, x, y, k, signal=sig, first_order=False)
         first = jax.grad(objective)(30.0, t, x, y, k, signal=sig, first_order=True)
         assert bool(jnp.isclose(full, first)) == same
+
+
+def test_the_hard_pass_defaults_to_first_order_and_the_soft_pass_does_not():
+    t, x, y, k = setup(1)
+    for sig in (BITS, STE):
+        by_default = jax.grad(objective)(30.0, t, x, y, k, signal=sig)
+        first = jax.grad(objective)(30.0, t, x, y, k, signal=sig, first_order=True)
+        assert jnp.array_equal(by_default, first)
+    by_default = jax.grad(objective)(30.0, t, x, y, k, signal=SOFT)
+    full = jax.grad(objective)(30.0, t, x, y, k, signal=SOFT, first_order=False)
+    assert jnp.array_equal(by_default, full)
 
 
 def test_at_eta_zero_the_objective_is_the_untrained_loss_and_the_tile_does_not_move():
@@ -76,7 +89,7 @@ def test_members_are_distinct_tiles_on_distinct_tasks():
     assert not jnp.array_equal(ys[0], ys[1])
 
 
-def test_learn_yields_after_every_step_and_moves_eta():
+def test_learn_yields_after_every_step_moves_eta_and_records_the_deployed_loss():
     params = rule.init()
     it = meta.learn(
         params,
@@ -87,6 +100,7 @@ def test_learn_yields_after_every_step_and_moves_eta():
         signal=SOFT,
         steps=2,
     )
-    (p1, J1), (p2, J2) = itertools.islice(it, 2)
+    (p1, J1, d1), (p2, J2, d2) = itertools.islice(it, 2)
     assert jnp.isfinite(J1) and jnp.isfinite(J2)
     assert not jnp.array_equal(p1.raw, params.raw) and not jnp.array_equal(p2.raw, p1.raw)
+    assert d1.shape == () and d2.shape == () and d1 >= 0 and d2 >= 0  # a hard loss, per step

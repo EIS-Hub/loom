@@ -59,7 +59,7 @@ def rollout(
     steps: int,
     window: int | None = None,
     control: Control = "none",
-    first_order: bool = False,
+    first_order: bool | None = None,
     clip: float | None = None,
 ) -> tuple[jax.Array, jax.Array, Tile]:
     """K steps of the rule from a state, in one scan.
@@ -67,10 +67,14 @@ def rollout(
     Returns the objective, the soft loss on every case of the tile the rule ends on; the record,
     the soft loss on each step's window before that step's update (what a deployed tile
     experiences, never the objective: a mean over steps would credit early updates through every
-    later loss and the last through none); and the tile. ``window`` is ``descent``'s: all cases per
-    step, or that many drawn with replacement. ``first_order`` treats the signal as data: on the
-    bits every derivative through the signal is already zero, so there it changes nothing.
+    later loss and the last through none); and the tile, whose deployed loss is the objective's
+    other read. ``window`` is ``descent``'s: all cases per step, or that many drawn with
+    replacement. ``first_order`` treats the signal as data in the outer gradient; by default it is
+    on for a signal on the hard pass, where the ``entry`` cells have no derivative through the
+    signal (so it changes nothing) and the ``logit`` cells only a surrogate one (``docs/meta.md``).
     """
+    if first_order is None:
+        first_order = signal.on == "hard"
 
     def step(logits, k):
         k_win, k_ctl = jax.random.split(k)
@@ -97,28 +101,33 @@ def members(key: jax.Array, task, n: int, *, hidden: tuple[int, ...], arity: int
 
 
 def objective(params: Params, tiles: Tile, xs, ys, key, **kw):
-    """The objective over a batch of states: the mean loss the rule ends on, and the rollouts."""
+    """The objective over a batch of states: the mean soft loss the rule ends on; beside it the
+    records: the online losses, the rolled tiles, and their mean deployed loss (the objective's
+    hard read, never differentiated: with the soft one it is the deploy gap, per outer step)."""
     keys = jax.random.split(key, xs.shape[0])
     run = jax.vmap(lambda t, x, y, k: rollout(rate(params), t, x, y, k, **kw))
     J, before, rolled = run(tiles, xs, ys, keys)
-    return jnp.mean(J), (before, rolled)
+    deployed = jnp.mean(jax.vmap(lambda t, x, y: loss(t, x, y, "hard"))(rolled, xs, ys))
+    return jnp.mean(J), (before, rolled, deployed)
 
 
 def step(params: Params, state, tiles: Tile, xs, ys, key, *, opt, **kw):
     """One outer step: the meta-gradient through the K unrolled steps, then the optimiser on the
     host. The rolled tiles come back as values: credit never runs past the K steps, whatever state
     they started from, so an old state is an input to the outer step, never a longer horizon."""
-    (J, (before, rolled)), grads = jax.value_and_grad(objective, has_aux=True)(
+    (J, (before, rolled, deployed)), grads = jax.value_and_grad(objective, has_aux=True)(
         params, tiles, xs, ys, key, **kw
     )
     updates, state = opt.update(grads, state, params)
-    return optax.apply_updates(params, updates), state, J, rolled
+    return optax.apply_updates(params, updates), state, (J, deployed), rolled
 
 
 def learn(
     params: Params, key: jax.Array, task, *, batch: int, hidden, arity=4, scale=1.0, lr=0.1, **kw
 ):
-    """The outer loop, without end: fresh states every step; yields (params, J) after each.
+    """The outer loop, without end: fresh states every step; yields (params, J, deployed) after
+    each, ``deployed`` the mean hard loss of the tiles the step ended on: the deploy gap's other
+    half, recorded, never differentiated.
 
     Adam on the host, with the gradient's global norm clipped: with η = exp(raw) the gradient on
     ``raw`` vanishes with η, so a non-functional start needs a step whose size does not, which
@@ -130,5 +139,5 @@ def learn(
     while True:
         key, k_mem, k_roll = jax.random.split(key, 3)
         tiles, xs, ys = members(k_mem, task, batch, hidden=hidden, arity=arity, scale=scale)
-        params, state, J, _ = outer(params, state, tiles, xs, ys, k_roll)
-        yield params, J
+        params, state, (J, deployed), _ = outer(params, state, tiles, xs, ys, k_roll)
+        yield params, J, deployed

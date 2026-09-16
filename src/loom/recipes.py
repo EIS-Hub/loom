@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from itertools import islice
-from typing import NamedTuple
+from typing import Literal, NamedTuple
 
 import jax
 import jax.numpy as jnp
@@ -19,6 +19,8 @@ from loom.descent import fit, trajectory
 from loom.meta import Control
 from loom.signals import REFERENCE, Signal
 from loom.tile import Tile, init
+
+Objective = Literal["soft"]  # what the outer loop differentiates: L^soft of the final state, today
 
 Task = Callable[[jax.Array], tuple[jax.Array, jax.Array]]  # key → (x, y)
 
@@ -90,9 +92,10 @@ def trace(recipe: DescentRecipe, task: Task, seed: int, every: int = 10):
 
 
 class MetaRecipe(NamedTuple):
-    """The condition of meta-learning the rule, named after the loop it runs (``meta.learn``)."""
+    """The condition of meta-learning the rule, named after the loop it runs (``meta.learn``): an
+    inner cell (the signal the rule is fed) and an outer objective, its label the pair."""
 
-    signal: Signal  # the signal the rule is fed inside the rollout
+    signal: Signal  # the inner cell: the signal the rule is fed inside the rollout
     steps: int  # K, the rollout's length: the horizon credit runs through
     window: int | None  # as in Descent: every case per step, or that many drawn
     batch: int  # states per outer step
@@ -101,19 +104,51 @@ class MetaRecipe(NamedTuple):
     lr: float = 0.1  # the outer optimiser's step, on log η
     eta0: float = 1e-2  # the non-functional start
     control: Control = "none"
-    first_order: bool = False
+    objective: Objective = "soft"  # the one value so far; L^ste is the fallback if the gap bites
+    first_order: bool | None = None  # None: the signal as data on the hard pass (docs/meta.md)
     arity: int = 4
     scale: float = 1.0
 
+    @property
+    def label(self) -> str:
+        """The inner cell and the outer objective, e.g. ``soft.relay.entry -> L^soft``: a display
+        name and a test id (ASCII), never something code branches on."""
+        return f"{'.'.join(self.signal)} -> L^{self.objective}"
 
-SOFT_META = MetaRecipe(
+
+# Online (one case per step) is the headline regime: there the objective has an optimum in η to
+# find. With every case per step the objective is flat over decades and a found η says little
+# (findings/2026-09-08-meta-learning-finds-a-step-size/note.md, the path). The outer step is 0.03:
+# at 0.1 the climb from the non-functional start overshoots the optimum on one seed in ten.
+ONLINE_META = MetaRecipe(
+    Signal("soft", "relay", "entry"),
+    steps=64,
+    window=1,
+    batch=16,
+    hidden=(16, 8),
+    outer_steps=500,
+    lr=0.03,
+)
+BATCHED_META = MetaRecipe(
     Signal("soft", "relay", "entry"), steps=16, window=None, batch=16, hidden=(16, 8)
 )
 
 
-def train(m: MetaRecipe, task: Task, seed: int) -> tuple[jax.Array, jax.Array]:
-    """Meta-learn the rule under the condition: η after every outer step, and the objective it
-    descended. The seed's other half is kept for held-out draws (``adapt``)."""
+def _inner(m: MetaRecipe) -> dict:
+    """The rollout's keyword arguments a recipe fixes."""
+    return dict(
+        signal=m.signal,
+        steps=m.steps,
+        window=m.window,
+        control=m.control,
+        first_order=m.first_order,
+    )
+
+
+def train(m: MetaRecipe, task: Task, seed: int) -> tuple[jax.Array, jax.Array, jax.Array]:
+    """Meta-learn the rule under the condition: η after every outer step, the objective it
+    descended, and the deployed loss of the same final states (the deploy gap's other half). The
+    seed's other half is kept for held-out draws (``adapt``)."""
     k_train, _ = jax.random.split(jax.random.key(seed))
     it = meta.learn(
         rule.init(m.eta0),
@@ -124,23 +159,34 @@ def train(m: MetaRecipe, task: Task, seed: int) -> tuple[jax.Array, jax.Array]:
         arity=m.arity,
         scale=m.scale,
         lr=m.lr,
-        signal=m.signal,
-        steps=m.steps,
-        window=m.window,
-        control=m.control,
-        first_order=m.first_order,
+        **_inner(m),
     )
-    etas, losses = zip(*((rule.rate(p), J) for p, J in islice(it, m.outer_steps)), strict=True)
-    return jnp.stack(etas), jnp.stack(losses)
+    cols = zip(*((rule.rate(p), J, d) for p, J, d in islice(it, m.outer_steps)), strict=True)
+    etas, losses, deployed = (jnp.stack(c) for c in cols)
+    return etas, losses, deployed
+
+
+def landscape(m: MetaRecipe, eta: float, task: Task, seed: int) -> tuple[jax.Array, jax.Array]:
+    """The objective at a fixed η, on the members the seed's first outer step draws: the fixed-η
+    baseline measured on the objective the loop descends, and its deployed loss beside it."""
+    k_train, _ = jax.random.split(jax.random.key(seed))
+    _, k_mem, k_roll = jax.random.split(k_train, 3)  # as ``meta.learn`` splits it
+    tiles, xs, ys = meta.members(
+        k_mem, task, m.batch, hidden=m.hidden, arity=m.arity, scale=m.scale
+    )
+    J, (_, _, deployed) = meta.objective(rule.init(eta), tiles, xs, ys, k_roll, **_inner(m))
+    return J, deployed
 
 
 def adapt(
     m: MetaRecipe, eta: float, task: Task, seed: int, steps: int
 ) -> tuple[Tile, jax.Array, jax.Array]:
-    """A fresh tile on a task drawn from the seed's held-out half, ``steps`` plain steps of the rule
-    at η: the deployed check, and at any fixed η the plain-descent baseline."""
+    """A fresh tile on a task drawn from the seed's held-out half, ``steps`` steps of the rule at
+    η under the recipe's cell, window and control: the deployed check, and at any fixed η the
+    plain-descent baseline. Swap the control to ``none`` to drive a control's η with the true
+    signal."""
     _, k_held = jax.random.split(jax.random.key(seed))
     k_task, k_tile, k_run = jax.random.split(k_held, 3)
     x, y = task(k_task)
     t = init(k_tile, (x.shape[1], *m.hidden, y.shape[1]), m.arity, m.scale)
-    return fit(t, x, y, steps, lr=eta, window=m.window, key=k_run, signal=m.signal), x, y
+    return meta.rollout(eta, t, x, y, k_run, **{**_inner(m), "steps": steps})[2], x, y
