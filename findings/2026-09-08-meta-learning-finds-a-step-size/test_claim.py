@@ -1,8 +1,11 @@
-"""The claim of note.md: online, where the objective has an optimum in η, the outer loop finds it
-from a non-functional start under the true signal (the learned η lies on the floor of the swept
-landscape, a band less than a factor 5 wide) and the η it finds adapts a fresh tile to a task the
-loop never saw; under the sign flip η falls and nothing trains; under the shuffled and the
-output-only signals the loss stays closer to untrained than to trained."""
+"""The claim of note.md: online, where the objective has an optimum in η, the outer loop settles
+on it from a non-functional start under the true signal (the median η over the last 200 outer
+steps lies on the floor of the swept landscape, a band less than a factor 5 wide; the endpoint
+alone carries transients) and that η adapts a fresh tile to a task the loop never saw; under the
+sign flip η falls and nothing trains; under the shuffled and the output-only signals the loss
+stays closer to untrained than to trained."""
+
+import jax.numpy as jnp
 
 from loom import recipes, tasks, tile
 from loom.recipes import ONLINE_META
@@ -28,9 +31,10 @@ def test_the_learned_step_size_lies_on_the_landscape_floor_and_adapts_a_held_out
     lo, hi = floor()
     for seed in SEEDS:
         etas, losses, _ = recipes.train(ONLINE_META, TASK, seed)
-        assert lo <= float(etas[-1]) <= hi  # the loop lands where the sweep says the optimum is
-        assert losses[-1] < losses[0] / 10  # and the objective is at that floor
-        t, x, y = recipes.adapt(ONLINE_META, float(etas[-1]), TASK, seed, steps=500)
+        eta, J = (float(jnp.median(a[-200:])) for a in (etas, losses))  # where the loop settles
+        assert lo <= eta <= hi  # the loop settles where the sweep says the optimum is
+        assert J < losses[0] / 10  # and the objective is at that floor
+        t, x, y = recipes.adapt(ONLINE_META, eta, TASK, seed, steps=500)
         assert tile.accuracy(t, x, y, "hard") == 1.0
 
 

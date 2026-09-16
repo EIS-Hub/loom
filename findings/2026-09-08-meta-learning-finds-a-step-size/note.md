@@ -31,14 +31,15 @@ CPU; the sweep on three recipe seeds, the learned column on six.
 One table, every row on the same axes: online, K = 64, the same members for the sweep and the
 loop's first step, the held-out check 500 steps of the rule at the η found on a fresh tile and a
 fresh task from the seed's held-out half. The sweep column is the mean over three seeds; the
-learned columns are the range over six seeds after 500 outer steps.
+learned columns are the range over six seeds of the tail, the median over the last 200 outer
+steps, where the loop settles (the deployed loss is that of the final states).
 
 | signal | swept objective: shape, best η, J there | learned η | J at the learned η | deployed loss there | held-out A^hard, driven by this signal | the same η, driven by the true signal |
 |---|---|---|---|---|---|---|
-| true | an interior optimum: **30**, 0.0025 (20 → 0.0041, 50 → 0.0033, 100 → 0.092, 200 → untrained) | **29.1 to 32.5** | 0.0015 to 0.0100 | 0.0020 to 0.0137 | **1.000 ×6** | 1.000 ×6 |
-| flipped | monotone worse: 0.43 at η = 3, 0.50 from 100 on; best **0** | 1.7e−4 to 1.8e−4, ×55 below the start | 0.252 to 0.253 | 0.46 to 0.54 | 0.34 to 0.53 | 0.34 to 0.53 |
-| shuffled | monotone worse: 0.254 at 3, 0.44 at 400; best **0** | 0.62 to 0.69 | 0.2517 to 0.2525 | 0.46 to 0.53 | 0.34 to 0.56 | 0.75 to 0.97 |
-| output-only | flat to worse: 0.251 at 3, 0.278 at 1000; best **0** | 1.07 to 1.36 | 0.2499 to 0.2511 | 0.43 to 0.51 | 0.34 to 0.59 | 1.000 ×6 |
+| true | an interior optimum: **30**, 0.0025 (20 → 0.0041, 50 → 0.0033, 100 → 0.092, 200 → untrained) | **23.0 to 33.0** | 0.0019 to 0.0035 | 0.0020 to 0.0137 | **1.000 ×6** | 1.000 ×6 |
+| flipped | monotone worse: 0.43 at η = 3, 0.50 from 100 on; best **0** | 2.3e-04 to 2.5e-04, ×40 below the start | 0.253 to 0.253 | 0.46 to 0.54 | 0.34 to 0.53 | 0.34 to 0.53 |
+| shuffled | monotone worse: 0.254 at 3, 0.44 at 400; best **0** | 0.60 to 0.65 | 0.2523 to 0.2524 | 0.46 to 0.53 | 0.34 to 0.59 | 0.69 to 0.97 |
+| output-only | flat to worse: 0.251 at 3, 0.278 at 1000; best **0** | 1.15 to 1.28 | 0.2506 to 0.2507 | 0.43 to 0.51 | 0.34 to 0.66 | 1.000 ×6 |
 
 The outer loop finds the minimum of whatever landscape the signal hands it, and only the true
 signal hands it a landscape with an interior minimum. Under the true signal the sweep's optimum is
@@ -75,35 +76,36 @@ every η above zero: the output gates alone, one case at a time, cannot lower th
 where with every case per step they bought a fourteenth (the path).
 
 **The runs** (`2026-09-16-learned.py`; `recipes.train` under `ONLINE_META` and its control swaps;
-cells: η / J at outer steps 100, 200, 300, 400, 500; the deployed loss of the final states at 500;
-the held-out accuracy at the η found, under the control and under the true signal):
+cells: η / J at outer steps 100, 200, 300, 400, 500; the tail, the medians of η and J over the last
+200 outer steps, where the loop settles; the deployed loss of the final states at 500; the held-out
+accuracy at the tail-median η, under the control and under the true signal):
 
-| control | seed | η / J along the run | deployed at 500 | held-out |
-|---|---|---|---|---|
-| none | 0 | 0.719/0.2475 · 27.7/0.0027 · 24.8/0.0031 · 27.5/0.0012 · 29.1/0.0027 | 0.0039 | 1.000 / 1.000 |
-| none | 1 | 0.733/0.2486 · 26/0.0037 · 24.8/0.0028 · 23.8/0.0008 · 32.5/0.0020 | 0.0020 | 1.000 / 1.000 |
-| none | 2 | 0.739/0.2482 · 28.1/0.0080 · 21.1/0.0032 · 24.7/0.0035 · 29.9/0.0065 | 0.0098 | 1.000 / 1.000 |
-| none | 3 | 0.718/0.2479 · 25.7/0.0058 · 21.2/0.0050 · 26.4/0.0019 · 30.7/0.0015 | 0.0020 | 1.000 / 1.000 |
-| none | 4 | 0.717/0.2495 · 27/0.0012 · 22.6/0.0017 · 22.9/0.0069 · 29.1/0.0100 | 0.0137 | 1.000 / 1.000 |
-| none | 5 | 0.718/0.2487 · 34.1/0.0143 · 65.7/0.0322 · 33.1/0.0162 · 29.6/0.0036 | 0.0039 | 1.000 / 1.000 |
-| flipped | 0 | 0.00146/0.2526 · 0.000632/0.2513 · 0.000372/0.2545 · 0.00025/0.2536 · 0.000182/0.2523 | 0.5195 | 0.469 / 0.469 |
-| flipped | 1 | 0.00144/0.2522 · 0.000622/0.2528 · 0.000361/0.2526 · 0.000241/0.2530 · 0.000173/0.2527 | 0.4570 | 0.438 / 0.438 |
-| flipped | 2 | 0.00144/0.2526 · 0.000635/0.2519 · 0.000376/0.2530 · 0.00025/0.2532 · 0.000182/0.2520 | 0.4707 | 0.344 / 0.344 |
-| flipped | 3 | 0.00142/0.2525 · 0.000604/0.2530 · 0.000355/0.2523 · 0.000239/0.2543 · 0.000173/0.2531 | 0.5352 | 0.406 / 0.406 |
-| flipped | 4 | 0.00146/0.2538 · 0.000628/0.2526 · 0.000367/0.2542 · 0.000245/0.2539 · 0.000178/0.2521 | 0.4941 | 0.531 / 0.531 |
-| flipped | 5 | 0.00138/0.2532 · 0.000597/0.2522 · 0.000347/0.2513 · 0.000231/0.2534 · 0.000169/0.2529 | 0.5000 | 0.438 / 0.438 |
-| shuffled | 0 | 0.45/0.2520 · 0.593/0.2504 · 0.654/0.2538 · 0.67/0.2526 · 0.636/0.2517 | 0.5137 | 0.406 / 0.969 |
-| shuffled | 1 | 0.421/0.2518 · 0.718/0.2518 · 0.687/0.2524 · 0.579/0.2521 · 0.693/0.2517 | 0.4570 | 0.531 / 0.969 |
-| shuffled | 2 | 0.432/0.2519 · 0.558/0.2516 · 0.553/0.2528 · 0.563/0.2528 · 0.636/0.2519 | 0.4727 | 0.344 / 0.812 |
-| shuffled | 3 | 0.44/0.2515 · 0.79/0.2529 · 0.594/0.2520 · 0.589/0.2535 · 0.672/0.2525 | 0.5273 | 0.469 / 0.906 |
-| shuffled | 4 | 0.433/0.2529 · 0.606/0.2522 · 0.503/0.2537 · 0.61/0.2532 · 0.694/0.2524 | 0.5195 | 0.562 / 0.969 |
-| shuffled | 5 | 0.421/0.2525 · 0.673/0.2517 · 0.589/0.2511 · 0.639/0.2520 · 0.624/0.2522 | 0.4922 | 0.469 / 0.750 |
-| output-only | 0 | 0.6/0.2504 · 0.985/0.2492 · 1.63/0.2507 · 1.27/0.2508 · 1.24/0.2507 | 0.4980 | 0.594 / 1.000 |
-| output-only | 1 | 0.622/0.2511 · 1.24/0.2497 · 1.2/0.2505 · 1.07/0.2495 · 1.36/0.2499 | 0.4258 | 0.531 / 1.000 |
-| output-only | 2 | 0.616/0.2504 · 1.27/0.2502 · 1/0.2504 · 1.16/0.2507 · 1.36/0.2511 | 0.4551 | 0.344 / 1.000 |
-| output-only | 3 | 0.595/0.2506 · 1.28/0.2514 · 1.01/0.2510 · 1.12/0.2510 · 1.32/0.2504 | 0.5059 | 0.469 / 1.000 |
-| output-only | 4 | 0.613/0.2515 · 1.06/0.2511 · 1.21/0.2517 · 1.14/0.2511 · 1.1/0.2507 | 0.4727 | 0.594 / 1.000 |
-| output-only | 5 | 0.601/0.2512 · 1.39/0.2502 · 1.09/0.2508 · 1.3/0.2496 · 1.07/0.2505 | 0.4707 | 0.562 / 1.000 |
+| control | seed | η / J along the run | tail: median η / J over steps 300 to 500 | deployed at 500 | held-out |
+|---|---|---|---|---|---|
+| none | 0 | 0.719/0.2475 · 27.7/0.0027 · 24.8/0.0031 · 27.5/0.0012 · 29.1/0.0027 | 28.3 / 0.0019 | 0.0039 | 1.000 / 1.000 |
+| none | 1 | 0.733/0.2486 · 26/0.0037 · 24.8/0.0028 · 23.8/0.0008 · 32.5/0.0020 | 24.4 / 0.0019 | 0.0020 | 1.000 / 1.000 |
+| none | 2 | 0.739/0.2482 · 28.1/0.0080 · 21.1/0.0032 · 24.7/0.0035 · 29.9/0.0065 | 24.7 / 0.0022 | 0.0098 | 1.000 / 1.000 |
+| none | 3 | 0.718/0.2479 · 25.7/0.0058 · 21.2/0.0050 · 26.4/0.0019 · 30.7/0.0015 | 26.5 / 0.0019 | 0.0020 | 1.000 / 1.000 |
+| none | 4 | 0.717/0.2495 · 27/0.0012 · 22.6/0.0017 · 22.9/0.0069 · 29.1/0.0100 | 23 / 0.0028 | 0.0137 | 1.000 / 1.000 |
+| none | 5 | 0.718/0.2487 · 34.1/0.0143 · 65.7/0.0322 · 33.1/0.0162 · 29.6/0.0036 | 33 / 0.0035 | 0.0039 | 1.000 / 1.000 |
+| flipped | 0 | 0.00146/0.2526 · 0.000632/0.2513 · 0.000372/0.2545 · 0.00025/0.2536 · 0.000182/0.2523 | 0.00025 / 0.2529 | 0.5195 | 0.469 / 0.469 |
+| flipped | 1 | 0.00144/0.2522 · 0.000622/0.2528 · 0.000361/0.2526 · 0.000241/0.2530 · 0.000173/0.2527 | 0.00024 / 0.2530 | 0.4570 | 0.438 / 0.438 |
+| flipped | 2 | 0.00144/0.2526 · 0.000635/0.2519 · 0.000376/0.2530 · 0.00025/0.2532 · 0.000182/0.2520 | 0.00025 / 0.2529 | 0.4707 | 0.344 / 0.344 |
+| flipped | 3 | 0.00142/0.2525 · 0.000604/0.2530 · 0.000355/0.2523 · 0.000239/0.2543 · 0.000173/0.2531 | 0.000239 / 0.2529 | 0.5352 | 0.406 / 0.406 |
+| flipped | 4 | 0.00146/0.2538 · 0.000628/0.2526 · 0.000367/0.2542 · 0.000245/0.2539 · 0.000178/0.2521 | 0.000245 / 0.2531 | 0.4941 | 0.531 / 0.531 |
+| flipped | 5 | 0.00138/0.2532 · 0.000597/0.2522 · 0.000347/0.2513 · 0.000231/0.2534 · 0.000169/0.2529 | 0.000231 / 0.2528 | 0.5000 | 0.438 / 0.438 |
+| shuffled | 0 | 0.45/0.2520 · 0.593/0.2504 · 0.654/0.2538 · 0.67/0.2526 · 0.636/0.2517 | 0.644 / 0.2523 | 0.5137 | 0.406 / 0.969 |
+| shuffled | 1 | 0.421/0.2518 · 0.718/0.2518 · 0.687/0.2524 · 0.579/0.2521 · 0.693/0.2517 | 0.636 / 0.2524 | 0.4570 | 0.531 / 0.969 |
+| shuffled | 2 | 0.432/0.2519 · 0.558/0.2516 · 0.553/0.2528 · 0.563/0.2528 · 0.636/0.2519 | 0.596 / 0.2524 | 0.4727 | 0.344 / 0.688 |
+| shuffled | 3 | 0.44/0.2515 · 0.79/0.2529 · 0.594/0.2520 · 0.589/0.2535 · 0.672/0.2525 | 0.648 / 0.2523 | 0.5273 | 0.500 / 0.906 |
+| shuffled | 4 | 0.433/0.2529 · 0.606/0.2522 · 0.503/0.2537 · 0.61/0.2532 · 0.694/0.2524 | 0.599 / 0.2524 | 0.5195 | 0.594 / 0.844 |
+| shuffled | 5 | 0.421/0.2525 · 0.673/0.2517 · 0.589/0.2511 · 0.639/0.2520 · 0.624/0.2522 | 0.624 / 0.2523 | 0.4922 | 0.469 / 0.750 |
+| output-only | 0 | 0.6/0.2504 · 0.985/0.2492 · 1.63/0.2507 · 1.27/0.2508 · 1.24/0.2507 | 1.25 / 0.2507 | 0.4980 | 0.594 / 1.000 |
+| output-only | 1 | 0.622/0.2511 · 1.24/0.2497 · 1.2/0.2505 · 1.07/0.2495 · 1.36/0.2499 | 1.21 / 0.2506 | 0.4258 | 0.531 / 1.000 |
+| output-only | 2 | 0.616/0.2504 · 1.27/0.2502 · 1/0.2504 · 1.16/0.2507 · 1.36/0.2511 | 1.22 / 0.2506 | 0.4551 | 0.344 / 1.000 |
+| output-only | 3 | 0.595/0.2506 · 1.28/0.2514 · 1.01/0.2510 · 1.12/0.2510 · 1.32/0.2504 | 1.19 / 0.2506 | 0.5059 | 0.438 / 1.000 |
+| output-only | 4 | 0.613/0.2515 · 1.06/0.2511 · 1.21/0.2517 · 1.14/0.2511 · 1.1/0.2507 | 1.28 / 0.2507 | 0.4727 | 0.656 / 1.000 |
+| output-only | 5 | 0.601/0.2512 · 1.39/0.2502 · 1.09/0.2508 · 1.3/0.2496 · 1.07/0.2505 | 1.15 / 0.2506 | 0.4707 | 0.594 / 1.000 |
 
 Under the true signal η climbs from 0.01 by a constant factor per outer step (0.72 at step 100 is
 six doublings), reaches the optimum near step 200 and stays, one seed making a transient to 66 at
@@ -217,12 +219,16 @@ next chunk's question.
 
 **The claim** (`test_claim.py`, re-run on every push), under `ONLINE_META` and its `control`
 swaps, three recipe seeds: the swept objective has a floor (J within four times its minimum)
-narrower than a factor of five and its ends ten times above it; the learned η lies on that floor on
-every seed, the objective ends ten times below its start, and the η found adapts a held-out task to
-1.000 in 500 steps of the rule; under the sign flip η ends below its start and the objective stays
-untrained; under the shuffled and output-only signals the objective stays closer to untrained than
-to trained. Its cells are the "true" row of the finding's table (the floor from the landscape table,
-the learned η and held-out from the runs) and the controls' J and η columns.
+narrower than a factor of five and its ends ten times above it; the loop settles on that floor on
+every seed, the median of η over the last 200 outer steps on it and the median objective ten times
+below the start (the endpoint alone is not the claim: the tail carries transients to about 66 that
+return within a hundred steps, and on another machine's float path one of them sat at step 500
+while every local seed had returned; the finding is where the loop *settles*); the tail-median η
+adapts a held-out task to 1.000 in 500 steps of the rule; under the sign flip η ends below its
+start and the objective stays untrained; under the shuffled and output-only signals the objective
+stays closer to untrained than to trained. Its cells are the "true" row of the finding's table
+(the floor from the landscape table, the tail-median η and the held-out column of the runs) and
+the controls' J and η columns.
 
 **What would change it.** The deep shape, where the exact relay on the bits does not train and the
 signal is the wiring-shaped feedback or the flip credit (step 1), with the stored logit bounded:
