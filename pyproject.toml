@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 license = { text = "MIT" }
 authors = [{ name = "Gabriel Béna" }]
-dependencies = ["jax>=0.4.30", "optax>=0.2.0", "numpy>=1.26"]
+dependencies = ["jax==0.10.0", "optax>=0.2.0", "numpy>=1.26"]  # jax pinned: the claims are re-run on CI and must draw the same tiles, tasks and windows as the notes
 
 [project.optional-dependencies]
 # ruff is exact-pinned: it is the style SSOT, so CI, pre-commit and the editor name the same version.

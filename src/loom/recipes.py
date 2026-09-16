@@ -118,16 +118,18 @@ class MetaRecipe(NamedTuple):
 
 # Online (one case per step) is the headline regime: there the objective has an optimum in η to
 # find. With every case per step the objective is flat over decades and a found η says little
-# (findings/2026-09-08-meta-learning-finds-a-step-size/note.md, the path). The outer step is 0.03:
-# at 0.1 the climb from the non-functional start overshoots the optimum on one seed in ten.
+# (findings/2026-09-08-meta-learning-finds-a-step-size/note.md, the path). The outer step is 0.01
+# for 1000 steps: Adam rescales the tiny gradient at the floor into steps of the outer step's size,
+# so the loop random-walks there with a spread that shrinks with the step; at 0.03 one seed in ten
+# ends off the floor, at 0.01 none of ten (the outer-schedule probe).
 ONLINE_META = MetaRecipe(
     Signal("soft", "relay", "entry"),
     steps=64,
     window=1,
     batch=16,
     hidden=(16, 8),
-    outer_steps=500,
-    lr=0.03,
+    outer_steps=1000,
+    lr=0.01,
 )
 BATCHED_META = MetaRecipe(
     Signal("soft", "relay", "entry"), steps=16, window=None, batch=16, hidden=(16, 8)

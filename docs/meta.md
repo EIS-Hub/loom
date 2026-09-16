@@ -99,7 +99,9 @@ this tests the *information* in the signal, and its claim is worded on the outco
 $\eta$ lands, because a permutation keeps each layer's mean. The **output-only** signal, the hidden
 layers silenced: only the output gates, which read their own residual, move; this is the baseline
 any claim about the hidden layers must beat. The controls act on the signal arrays inside the
-rollout (`meta.controlled`) and are never signal cells: `signals.CELLS` is what a chip can compute.
+rollout (`meta.controlled`; the shuffled control's permutations are drawn before the scan,
+`meta.permutations`, so the scan only gathers) and are never signal cells: `signals.CELLS` is what
+a chip can compute.
 Each control has its own landscape in $\eta$, and the loop is expected to find *that* landscape's
 minimum: under the flip it is at zero, under the information controls it is wherever nothing moves.
 
@@ -112,9 +114,13 @@ gradient on raw is $\eta$ times the gradient on $\eta$, which vanishes exactly a
 non-functional start the check demands; a step whose size does not vanish with it is needed, and
 Adam's normalisation gives one, a constant factor on $\eta$ per step. The gradient's global norm is
 clipped as well. What is learned is the same whatever moves it; how fast is the host's affair, with
-one limit: the climb from the start is geometric, and a factor per step that reaches the optimum
-in a few dozen steps carries momentum past it, where the outer gradient is noisy and a seed can run
-away (one in ten at 0.1 on the flat tile online). The recipe climbs at 0.03.
+one limit. Adam rescales whatever gradient it sees into a step of the outer step's size, so at the
+floor, where the gradient is tiny and its sign only mostly right, the loop is a random walk with a
+restoring drift, and both the walk and the drift scale with the outer step: the spread at rest
+shrinks as its square root, and the climb from the start lengthens as its inverse. At 0.1 the
+climb carries momentum past the optimum and one seed in ten runs away; at 0.03 one seed in ten
+ends off the floor; at 0.01 for 1000 steps none of ten does (the finding's outer-schedule probe).
+The recipe climbs at 0.01.
 
 ## What is measured, and what is read
 

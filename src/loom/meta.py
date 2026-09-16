@@ -27,6 +27,18 @@ from loom.tile import Tile, init
 Control = Literal["none", "flipped", "shuffled", "output_only"]
 
 
+def permutations(key: jax.Array, s: tuple[jax.Array, ...]) -> tuple[jax.Array, ...]:
+    """One permutation of the entries per layer, for the shuffled control: drawn here, outside
+    the rollout's scan, so the scan only gathers (a sort per step inside it was the long pole)."""
+    keys = jax.random.split(key, len(s))
+    return tuple(jax.random.permutation(k, g.size) for k, g in zip(keys, s, strict=True))
+
+
+def shuffle(s: tuple[jax.Array, ...], perms: tuple[jax.Array, ...]) -> tuple[jax.Array, ...]:
+    """The same numbers, permuted within each layer."""
+    return tuple(g.ravel()[p].reshape(g.shape) for g, p in zip(s, perms, strict=True))
+
+
 def controlled(kind: Control, s: tuple[jax.Array, ...], key: jax.Array) -> tuple[jax.Array, ...]:
     """The signal under one of the check's controls. ``flipped``: −s, the direction control (η
     cannot go negative, so the outer loop must fail to recover a rule). ``shuffled``: the same
@@ -38,11 +50,7 @@ def controlled(kind: Control, s: tuple[jax.Array, ...], key: jax.Array) -> tuple
     if kind == "flipped":
         return tuple(-g for g in s)
     if kind == "shuffled":
-        keys = jax.random.split(key, len(s))
-        return tuple(
-            jax.random.permutation(k, g.ravel()).reshape(g.shape)
-            for k, g in zip(keys, s, strict=True)
-        )
+        return shuffle(s, permutations(key, s))
     if kind == "output_only":
         return (*(jnp.zeros_like(g) for g in s[:-1]), s[-1])
     raise ValueError(f"control must be none, flipped, shuffled or output_only, got {kind!r}")
@@ -76,17 +84,23 @@ def rollout(
     if first_order is None:
         first_order = signal.on == "hard"
 
-    def step(logits, k):
+    def step(logits, xs):
+        k, perms = xs
         k_win, k_ctl = jax.random.split(k)
         idx = slice(None) if window is None else jax.random.choice(k_win, len(x), (window,))
         xw, yw, t = x[idx], y[idx], Tile(logits, tile.wires)
         before = loss(t, xw, yw, "soft")
-        s = controlled(control, compute(signal, t, xw, yw), k_ctl)
+        s = compute(signal, t, xw, yw)
+        s = shuffle(s, perms) if control == "shuffled" else controlled(control, s, k_ctl)
         if first_order:
             s = jax.lax.stop_gradient(s)
         return update(eta, t, s, clip).logits, before
 
-    logits, before = jax.lax.scan(step, tile.logits, jax.random.split(key, steps))
+    keys = jax.random.split(key, steps)
+    perms = None  # the shuffled control's permutations, drawn before the scan from each step's key
+    if control == "shuffled":
+        perms = jax.vmap(lambda k: permutations(jax.random.split(k)[1], tile.logits))(keys)
+    logits, before = jax.lax.scan(step, tile.logits, (keys, perms))
     t = Tile(logits, tile.wires)
     return loss(t, x, y, "soft"), before, t
 

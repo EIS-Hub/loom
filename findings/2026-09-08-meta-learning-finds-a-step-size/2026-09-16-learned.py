@@ -4,12 +4,14 @@ last 200 outer steps (where the loop settles: the endpoint alone carries transie
 deployed loss of the final states; then the tail-median η, driven for 500 steps on a fresh
 held-out tile and task by the control's own signal (what that rule achieves) and by the true
 signal (whether the η it parked at is a working step size at all). `BATCHED_META` under the true
-signal, three seeds, for the path: the regime of the first draft."""
+signal, three seeds, for the path: the regime of the first draft. Run with a control's name as the
+argument to run one group (the groups run in parallel on the CPU), or with none for all."""
 
 import os
 
 os.environ.setdefault("JAX_PLATFORMS", "cpu")
 
+import sys  # noqa: E402
 import time  # noqa: E402
 
 import jax.numpy as jnp  # noqa: E402
@@ -38,14 +40,18 @@ def row(m, seed, at):
     )
 
 
-for control in CONTROLS:
+only = sys.argv[1] if len(sys.argv) > 1 else None
+for control in CONTROLS if only is None else ([] if only == "batched" else [only]):
     m = ONLINE_META._replace(control=control)
-    head = f"\nONLINE_META {m.label}, control={control}: eta/J at outer steps 100 ... 500"
-    print(head + "; tail = medians over steps 300-500; deployed loss at 500; held-out at the tail")
+    head = f"\nONLINE_META {m.label}, control={control}: eta/J at outer steps 200 ... 1000"
+    print(
+        head + "; tail = medians over steps 800-1000; deployed loss at 1000; held-out at the tail"
+    )
     for seed in range(6):
-        row(m, seed, (100, 200, 300, 400, 500))
+        row(m, seed, (200, 400, 600, 800, 1000))
 
-head = f"\nBATCHED_META {BATCHED_META.label}, control=none: eta/J at outer steps 50, 100, 200"
-print(head + "; tail = medians over steps 1-200; deployed loss at 200; held-out at the tail")
-for seed in range(3):
-    row(BATCHED_META, seed, (50, 100, 200))
+if only in (None, "batched"):
+    head = f"\nBATCHED_META {BATCHED_META.label}, control=none: eta/J at outer steps 50, 100, 200"
+    print(head + "; tail = medians over steps 1-200; deployed loss at 200; held-out at the tail")
+    for seed in range(3):
+        row(BATCHED_META, seed, (50, 100, 200))
