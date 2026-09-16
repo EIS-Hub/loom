@@ -13,7 +13,7 @@ full in one sitting. The progression below the table is the plan the rows are dr
 | #5 | 1 | Descent is plain: Δ = −lr·s with nothing normalised; the step 0 and 1 floors re-derived under it (the rate sweep per pass, signal and shape; recipes re-pinned; every claim re-run, what held and what moved on record); `Recipe` becomes `Descent`, the condition named after the loop it runs | record | 20 min | landed |
 | #6 | 2 | The rule, one canonical step (`rule.py`: η the only parameter, never negative; one step z − η·s, optionally held within a bound, the logit as a finite counter); `descent` runs it at a fixed rate | foundation | 10 min | landed |
 | #7 | 2 | The hand-engineered family at the cell: the primitives (scale, sign, clip, first and second moment, decay, bound) and the named compositions plain · sign · momentum · RMSprop · Lion · Adam, each a few lines verified once against optax; `Descent` gains a `rule`; one claim: at depth plain descent is a point in the rate and the sign readout and RMSprop are bands; the family table with its state and arithmetic columns in `docs/rule.md`: what the learned rule must beat, at equal memory | science | 25 min | landed |
-| #9 | 2 | Meta-learning I: the two loops (`meta.py`: K steps of the rule in one scan; the objective the soft loss of the tile the rule ends on; the meta-gradient through the K steps; Adam on the host); fresh states; the check from a non-functional start on the flat tile under the soft relay and its three controls (sign-flipped, shuffled, output-only); the η found adapts a held-out task; `Meta` beside `Descent` | science | 30 min (oversize: the docstrings) | open |
+| #9 | 2 | Meta-learning I: the two loops (`meta.py`: K steps of the rule in one scan; the objective the soft loss of the tile the rule ends on, its deployed loss recorded beside it; the meta-gradient through the K steps, first-order by default on the hard pass; Adam on the host); fresh states; the check from a non-functional start on the flat tile, online, against the fixed-η sweep on the same objective, under the soft relay and its three controls (sign-flipped, shuffled, output-only); the η found adapts a held-out task; `MetaRecipe` beside `DescentRecipe`, labelled inner cell → outer objective; the glossary of `docs/meta.md` | science | 30 min (oversize: the docstrings and the glossary) | open |
 | — | 2 | Meta-learning II: the pool of tile states of every age (`pool.py`); the bits on the deep shape, the persisted logit a bounded counter and its depth `clip/η` in votes the first axis (every bits number so far was one vote deep); the ledger's first row; the `path_counts` window fix | science | 25 min | queued |
 | — | 2 | The stream: a task whose cases arrive in time order, with drift; the window over time instead of over cases; the learner scores a case before it updates on it; from here every claim carries an online row on a stream, not on a sample of cases | foundation | 10 min | queued |
 | — | 3 | The rule as a function: a small shared g over the three factors, replacing the product in the same loops; judged against the family at equal memory; value-awareness at the rule level as an ablation (g on the fine signal, then on the per-gate signal with the gate's own inputs and output) | science | 40 min | queued |
@@ -173,3 +173,20 @@ after the tile is owned, with a brainstorm before any cell, because whether it i
 frame or an object outside it is open. Codex's alternative, the stream, then selective adaptation as
 the central question before g and before damage, then the route, was read and declined on those
 grounds; what the order dropped is kept in item 11.
+
+Decided 2026-09-16 (Gabriel, in the review of #9; the first draft was sent back as a lab notebook,
+not a finding). **A finding opens with one comparison**: the learned thing and its non-learned
+baseline on the same axes (regime, K, window, seeds, the baseline measured on the objective the
+learner descends), the controls as rows of the same table, and the path after the result, never as
+its structure; mechanics that a test pins move beside the test. **The headline regime is where there
+is something to find**: online (W = 1) the objective has an interior optimum in η and the loop
+finds it; with every case per step it is flat over decades, which is a reason to change regime, not
+a property to read into the tile. **The words**: one state, two reads, a pass qualifies a signal
+and never a state; the inner loop consumes a residual (∂ℓ/∂r on both passes) and never a loss; the
+signal to the entry is ∂L/∂T on the pass, exact on both, and the hop to the logit is the only
+surrogate on the hard pass; "objective" is the outer loop's word alone (`docs/meta.md`, the
+glossary). **The objective stays soft**: it is the host's, the signal is the chip's, so a soft
+objective learning to use a hard-pass signal is the shape of the method; the deployed loss is
+recorded beside it at every outer step, and its straight-through version is the fallback if that
+column opens, not a principle. **First order is the default on the hard pass**: the `entry` cells
+have no derivative through the signal, the `logit` cells only a surrogate one.

@@ -1,33 +1,49 @@
-"""The claim of note.md: from a non-functional start the
-outer loop finds a step size under the soft relay and not under its controls, and the η it finds
-adapts a fresh tile to a task the loop never saw."""
+"""The claim of note.md: online, where the objective has an optimum in η, the outer loop finds it
+from a non-functional start under the true signal (the learned η lies on the floor of the swept
+landscape, a band less than a factor 5 wide) and the η it finds adapts a fresh tile to a task the
+loop never saw; under the sign flip η falls and nothing trains; under the shuffled and the
+output-only signals the loss stays closer to untrained than to trained."""
 
 from loom import recipes, tasks, tile
-from loom.recipes import SOFT_META
+from loom.recipes import ONLINE_META
 
 TASK = tasks.junta(4, 2, k=2)
 SEEDS = range(3)
+GRID = (3, 10, 20, 30, 50, 100, 200, 400)
 
 
-def test_the_outer_loop_finds_a_step_size_that_adapts_a_held_out_task():
+def floor():
+    """The η on which the swept objective (mean over the seeds) is within 4× its minimum."""
+    J = {
+        eta: sum(float(recipes.landscape(ONLINE_META, eta, TASK, s)[0]) for s in SEEDS)
+        for eta in GRID
+    }
+    low = [eta for eta in GRID if J[eta] <= 4 * min(J.values())]
+    assert J[GRID[0]] > 10 * min(J.values()) < J[GRID[-1]] / 10  # a landscape, not a plateau
+    assert max(low) / min(low) < 5  # with a floor narrower than a factor 5: something to find
+    return min(low), max(low)
+
+
+def test_the_learned_step_size_lies_on_the_landscape_floor_and_adapts_a_held_out_task():
+    lo, hi = floor()
     for seed in SEEDS:
-        etas, losses = recipes.train(SOFT_META, TASK, seed)
-        assert losses[-1] < losses[0] / 3  # the objective falls well below the untrained loss
-        assert etas[-1] > 100 * SOFT_META.eta0  # by orders of magnitude, not a nudge
-        t, x, y = recipes.adapt(SOFT_META, float(etas[-1]), TASK, seed, steps=500)
+        etas, losses, _ = recipes.train(ONLINE_META, TASK, seed)
+        assert lo <= float(etas[-1]) <= hi  # the loop lands where the sweep says the optimum is
+        assert losses[-1] < losses[0] / 10  # and the objective is at that floor
+        t, x, y = recipes.adapt(ONLINE_META, float(etas[-1]), TASK, seed, steps=500)
         assert tile.accuracy(t, x, y, "hard") == 1.0
 
 
 def test_under_the_sign_flipped_signal_eta_falls_and_nothing_trains():
     for seed in SEEDS:
-        etas, losses = recipes.train(SOFT_META._replace(control="flipped"), TASK, seed)
-        assert etas[-1] < SOFT_META.eta0  # η can only shrink: the direction control
+        etas, losses, _ = recipes.train(ONLINE_META._replace(control="flipped"), TASK, seed)
+        assert etas[-1] < ONLINE_META.eta0  # η can only shrink: the direction control
         assert losses[-1] > 0.9 * losses[0]  # untrained
 
 
 def test_under_the_shuffled_and_the_output_only_signals_the_loss_stays_near_untrained():
     for seed in SEEDS:
-        trained = recipes.train(SOFT_META, TASK, seed)[1][-1]
+        trained = recipes.train(ONLINE_META, TASK, seed)[1][-1]
         for control in ("shuffled", "output_only"):
-            _, losses = recipes.train(SOFT_META._replace(control=control), TASK, seed)
+            _, losses, _ = recipes.train(ONLINE_META._replace(control=control), TASK, seed)
             assert losses[-1] > (losses[0] + trained) / 2  # closer to untrained than to trained
