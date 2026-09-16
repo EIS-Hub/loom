@@ -43,9 +43,9 @@ steps, where the loop settles (the deployed loss is that of the final states).
 
 The outer loop finds the minimum of whatever landscape the signal hands it, and only the true
 signal hands it a landscape with an interior minimum. Under the true signal the sweep's optimum is
-30, the floor (J within four times its minimum) is η from 20 to 50, and the loop lands at 29 to 33
-on every seed, with the objective and the deployed loss both at that floor and the held-out tile
-at 1.000. Under the three controls the sweep says the best η is zero, and the loop goes there: it
+30, the floor (J within four times its minimum) is η from 20 to 50, and the loop settles at 23 to
+33 on every seed (the tail medians; the endpoints 29 to 33), with the objective and the deployed
+loss both at that floor and the held-out tile at 1.000. Under the three controls the sweep says the best η is zero, and the loop goes there: it
 walks η down under the flip, and parks it at a size where nothing moves under the two information
 controls, the objective at untrained on every seed. The two held-out columns say two different
 things. Driven by its own signal, every control leaves the fresh tile at chance. Driven by the true
@@ -109,7 +109,8 @@ accuracy at the tail-median η, under the control and under the true signal):
 
 Under the true signal η climbs from 0.01 by a constant factor per outer step (0.72 at step 100 is
 six doublings), reaches the optimum near step 200 and stays, one seed making a transient to 66 at
-step 300 and returning; the deployed loss at the end is the objective's size, so the deploy gap on
+step 300 and returning (on the CI runner's float path such a transient sat at step 500 on one
+seed, which is why the claim pins the tail and not the endpoint); the deployed loss at the end is the objective's size, so the deploy gap on
 this tile is closed by the rule that trained it. Under the flip η can only shrink, and does. Under
 the shuffled signal η rises from 0.01 to 0.6 and stops: the layer's mean, which a permutation
 keeps, is a real component of the gradient and carries the loop to the edge of the landscape's
