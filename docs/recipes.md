@@ -19,8 +19,20 @@ hidden inside tests produces, so the boundary is a directory rather than a habit
 
 `recipes.run(recipe, task, seed)` is the one place a condition meets a task: it draws the task,
 builds the tile to the task's width and fits it. A recipe is named after the loop it runs:
-`DescentRecipe` configures `descent.fit`; the meta-learning condition arrives with step 2 and is named
-after its loop too. Claims call it with a named recipe and assert on
+`DescentRecipe` configures `descent.fit`, and `MetaRecipe` configures `meta.learn`: the inner cell
+(the signal the rule is fed), the outer objective (`soft`, the one value so far), the rollout's
+length K, the window, the batch of states, the outer optimiser's step and budget, the
+non-functional start, the control; its `label` is the pair inner → outer, `soft.relay.entry ->
+L^soft`, the name every table row carries. `recipes.train` meta-learns under a `MetaRecipe` from
+the seed's training half and returns η, the objective and the deployed loss after every outer
+step; `recipes.landscape` is the same objective at a fixed η on the members the seed's first outer
+step draws, the non-learned baseline measured on the objective the loop descends, so a learned η
+and a swept one sit on the same axes; `recipes.adapt` runs the rule at a given η on a fresh tile
+drawn from the seed's held-out half, under the recipe's cell, window and control, which at any
+fixed η is the plain-descent baseline and, with the control swapped to `none`, drives a control's
+η with the true signal. A claim may swap a `MetaRecipe`'s `control` as it may
+swap a recipe's `signal`: the control is what the check is about. Claims call these with a named
+recipe and assert on
 the result; nothing else in a claim may train. A recipe owns *how* we train; a claim owns *what*
 is claimed, *on which task*, with *how many seeds*, and points at its note. Changing a step size
 means editing or adding a recipe, a one-file diff next to the claim that depends on it, so the same

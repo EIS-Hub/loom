@@ -1,6 +1,7 @@
 """Mechanics of signals: straight-through is the bits in value, residuals are bits, the address
-distribution is the read, the relay is autodiff, the partial to the entry changes no sign, feedback
-alignment on the wiring's path counts is the uniform split, labels are names only, shapes hold."""
+distribution is the read, the relay is autodiff, the signal to the entry is the gradient with
+respect to the entries on both passes, the partial to the entry changes no sign, feedback alignment
+on the wiring's path counts is the uniform split, labels are names only, shapes hold."""
 
 import jax
 import jax.numpy as jnp
@@ -52,6 +53,18 @@ def test_the_relay_reproduces_autodiff_on_both_passes(shape, on):
     by_autodiff = signals.compute(Signal(on, "autodiff"), t, x, y)
     for a, b in zip(by_relay, by_autodiff, strict=True):
         assert jnp.allclose(a, b, atol=1e-7, rtol=1e-4)
+
+
+@pytest.mark.parametrize("on", ["soft", "hard"])
+def test_the_signal_to_the_entry_is_the_gradient_with_respect_to_the_entries(on):
+    """∂L/∂T at the pass's point, the tables as free variables: exact on the bits too, since the
+    read is multilinear; the hop to the logit is the only derivative the hard pass lacks."""
+    t, x, y = setup(6, "deep")
+    tables = tuple(tile.tables(lg, on) for lg in t.logits)
+    by_autodiff = jax.grad(lambda T: signals.squared_error(tile.run(T, t.wires, x)[-1], y))(tables)
+    by_relay = signals.compute(Signal(on, "relay", "entry"), t, x, y)
+    for a, b in zip(by_autodiff, by_relay, strict=True):
+        assert jnp.allclose(a, b, atol=1e-6)
 
 
 @pytest.mark.parametrize("on", ["soft", "hard"])
